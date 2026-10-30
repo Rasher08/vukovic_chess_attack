@@ -21,13 +21,12 @@ HUD создан не для того, чтобы играть за вас пе�
 
 ## 📥 Скачать для Windows (.exe)
 
-Готовые сборки генерируются автоматически через GitHub Actions при каждом обновлении:
+Скачивание в 1 клик без регистрации:
 
-👉 **[Скачать актуальный .exe (GitHub Actions Artifacts)](https://github.com/Rasher08/vukovic_chess_attack/actions)**
+- 🚀 **[Скачать Portable .exe (106 МБ)](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.0/nonchalant-HUD-0.1.0-portable.exe)** — **рекомендуется**: не требует установки, запускается сразу после скачивания.
+- 📦 **[Скачать Setup .exe (118 МБ)](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.0/nonchalant-HUD-0.1.0-setup.exe)** — установщик с ярлыками на рабочем столе и в Пуске.
 
-В архиве `nonchalant-hud-windows` доступны две версии:
-1. **`nonchalant HUD-0.1.0-portable.exe`** — портативная версия. Не требует установки, работает сразу после скачивания (можно скинуть на флешку).
-2. **`nonchalant HUD-0.1.0-setup.exe`** — стандартный инсталлятор с автоматическим созданием ярлыков на рабочем столе и в меню Пуск.
+Страница релиза: [GitHub Releases v0.1.0](https://github.com/Rasher08/vukovic_chess_attack/releases/tag/v0.1.0)
 
 > **Важно:** Движок **Stockfish 19 Lite** уже встроен внутрь исполняемого файла. Никаких дополнительных программ, Node.js или Python на Windows устанавливать не нужно.
 
