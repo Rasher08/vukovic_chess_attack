@@ -11,5 +11,6 @@ const api: HudAPI = {
   copyToken: () => ipcRenderer.invoke('hud:copy-token'),
   onState: listener => { const fn = (_: unknown, state: Parameters<typeof listener>[0]) => listener(state); ipcRenderer.on('hud:state', fn); return () => ipcRenderer.removeListener('hud:state', fn); },
   onSound: listener => { const fn = () => listener(); ipcRenderer.on('hud:sound', fn); return () => ipcRenderer.removeListener('hud:sound', fn); },
+  onNewGame: listener => { const fn = () => listener(); ipcRenderer.on('hud:new-game', fn); return () => ipcRenderer.removeListener('hud:new-game', fn); },
 };
 contextBridge.exposeInMainWorld('hud', api);

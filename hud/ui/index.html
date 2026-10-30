@@ -21,17 +21,28 @@
     <div class="row"><button id="choose">Выбрать экран</button><button id="region" disabled>Изменить область</button><label>Снизу <select id="orientation"><option value="white">белые</option><option value="black">чёрные</option></select></label><span id="capture-status" class="note">Захват выключен</span></div>
     <div id="sources"></div>
     <div id="picker" hidden><p>Выделите мышью квадрат от внешнего угла a8/h1 до противоположного угла. Рамки и подписи вне доски не включайте.</p><canvas id="screen-preview"></canvas><div class="row"><button id="use-region">Использовать область</button><span id="selection-size" class="note"></span></div></div>
-    <div class="inspection"><div><h3>Кадр</h3><canvas id="board-preview" width="256" height="256"></canvas><p id="recognition-status" class="note">Область ещё не выбрана.</p></div><div><h3>Проверка и исправление</h3><div id="editor" aria-label="Распознанная доска"></div><div id="palette" aria-label="Выбор фигуры"></div></div></div>
-    <p class="note">Выберите фигуру в палитре и нажмите клетку для исправления. Жёлтая рамка означает неопределённость. Здесь отображается только распознанная позиция.</p>
-    <label class="block">Полный FEN из надёжного источника<textarea id="fen" rows="2" spellcheck="false" placeholder="Все 6 полей FEN; картинка не определяет сторону хода и права рокировки."></textarea></label>
-    <div class="row"><button id="load-fen">Загрузить в редактор</button><button id="initial">Это начальная позиция</button><button id="edit">Исправить вручную</button></div>
-    <div class="metadata"><label>Ход<select id="turn"><option value="">Неизвестно</option><option value="w">Белые</option><option value="b">Чёрные</option></select></label><label>Рокировки<input id="castling" placeholder="KQkq или -"></label><label>En passant<input id="ep" placeholder="e3 / e6 / -"></label><label>Без взятия / пешки<input id="halfmove" placeholder="0" inputmode="numeric"></label><label>Номер хода<input id="fullmove" placeholder="1" inputmode="numeric"></label></div>
-    <label class="confirm"><input id="confirmed" type="checkbox"> Я проверил фигуры, сторону хода, рокировки, en passant и счётчики.</label>
-    <div class="row"><button id="calibrate" class="primary">Обучить фигуры по этому кадру</button><button id="seed" class="primary">Подтвердить текущую позицию</button></div>
-    <p class="note">Для обучения нужны все 12 видов фигур и пустые клетки. Для подтверждения текущей позиции достаточно точного FEN. После смены темы, масштаба или области обучите фигуры заново.</p>
+    <div class="row new-game-row" style="margin: 16px 0 8px;">
+      <button id="new-game" class="primary" style="font-size: 14px; font-weight: 600; padding: 11px 22px; background: #235c4b; border-color: #409176; color: #d7faef;">🟢 Начать новую партию (с 1-го хода)</button>
+      <span class="note">Хоткей: <b>Ctrl+Shift+N</b>. Сбрасывает на 1-й ход.</span>
+    </div>
+    <div class="inspection"><div><h3>Кадр доски</h3><canvas id="board-preview" width="256" height="256"></canvas><p id="recognition-status" class="note">Область ещё не выбрана.</p></div></div>
+    <details id="advanced-fen" style="margin-top: 16px; border: 1px solid #33353d; border-radius: 8px; padding: 12px;">
+      <summary style="cursor: pointer; color: #a9abb4; font-weight: 500;">⚙️ Расширенные настройки и ручное исправление FEN</summary>
+      <div style="margin-top: 12px;">
+        <h3>Проверка и исправление клеток</h3>
+        <div id="editor" aria-label="Распознанная доска"></div>
+        <div id="palette" aria-label="Выбор фигуры"></div>
+        <p class="note">Выберите фигуру в палитре и нажмите клетку для исправления. Жёлтая рамка означает неопределённость. Здесь отображается только распознанная позиция.</p>
+        <label class="block">Полный FEN из надёжного источника<textarea id="fen" rows="2" spellcheck="false" placeholder="Все 6 полей FEN; картинка не определяет сторону хода и права рокировки."></textarea></label>
+        <div class="row"><button id="load-fen">Загрузить в редактор</button><button id="initial">Это начальная позиция</button><button id="edit">Исправить вручную</button></div>
+        <div class="metadata"><label>Ход<select id="turn"><option value="">Неизвестно</option><option value="w">Белые</option><option value="b">Чёрные</option></select></label><label>Рокировки<input id="castling" placeholder="KQkq или -"></label><label>En passant<input id="ep" placeholder="e3 / e6 / -"></label><label>Без взятия / пешки<input id="halfmove" placeholder="0" inputmode="numeric"></label><label>Номер хода<input id="fullmove" placeholder="1" inputmode="numeric"></label></div>
+        <label class="confirm"><input id="confirmed" type="checkbox"> Я проверил фигуры, сторону хода, рокировки, en passant и счётчики.</label>
+        <div class="row"><button id="calibrate" class="primary">Обучить фигуры по этому кадру</button><button id="seed" class="primary">Подтвердить текущую позицию</button></div>
+      </div>
+    </details>
     <div class="info">Если macOS блокирует захват: Системные настройки → Конфиденциальность и безопасность → Запись экрана и системного аудио. Разрешите Electron (или приложение, из которого он запущен), затем перезапустите HUD. Звук экрана не записывается.</div>
   </section>
   <p id="message" role="status"></p>
-  <footer><span>⌘⇧P — пауза · ⌘⇧H — свернуть · ⌘⇧M — переместить / закрепить</span><p>Закреплённый HUD пропускает все клики. «Проверено» означает, что ограниченная проверка завершена; отсутствие сигнала не доказывает отсутствие идеи. Совпадение со значком Chess.com не гарантируется.</p></footer>
+  <footer><span>⌘⇧P — пауза · ⌘⇧H — свернуть · ⌘⇧M — переместить · ⌘⇧N — новая партия</span><p>Закреплённый HUD пропускает все клики. «Проверено» означает, что ограниченная проверка завершена; отсутствие сигнала не доказывает отсутствие идеи. Совпадение со значком Chess.com не гарантируется.</p></footer>
 </main><video id="capture-video" muted hidden></video><script src="renderer.js"></script>
 </body></html>

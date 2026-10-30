@@ -50,6 +50,7 @@ function setPause(value: boolean) { paused = value; controller.setPaused(value);
 function updateMenu() {
   if (!tray) return;
   tray.setContextMenu(Menu.buildFromTemplate([
+    { label: '🟢 Новая партия (с 1-го хода)', click: () => { if (controls && !controls.isDestroyed()) controls.webContents.send('hud:new-game'); } },
     { label: 'Настройки и распознавание…', click: settings },
     { label: paused ? 'Включить' : 'Пауза', click: () => setPause(!paused) },
     { label: collapsed ? 'Развернуть HUD' : 'Свернуть HUD', click: () => { collapsed = !collapsed; layoutOverlay(); } },
@@ -142,6 +143,7 @@ void app.whenReady().then(async () => {
   globalShortcut.register('CommandOrControl+Shift+P', () => setPause(!paused));
   globalShortcut.register('CommandOrControl+Shift+H', () => { collapsed = !collapsed; layoutOverlay(); });
   globalShortcut.register('CommandOrControl+Shift+M', () => { movable = !movable; layoutOverlay(); });
+  globalShortcut.register('CommandOrControl+Shift+N', () => { if (controls && !controls.isDestroyed()) controls.webContents.send('hud:new-game'); });
   await controls.loadFile(path.join(__dirname, 'index.html'));
   await overlay.loadFile(path.join(__dirname, 'index.html'), { query: { overlay: '1' } });
   server.listen(18319, '127.0.0.1');

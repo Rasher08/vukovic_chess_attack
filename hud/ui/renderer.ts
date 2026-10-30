@@ -58,6 +58,62 @@ let screenSnapshot: ImageData | null = null;
 const boardCanvas = document.createElement('canvas');
 
 function message(text: string) { $('message').textContent = text; }
+function saveSettings() {
+  try {
+    if (rect) localStorage.setItem('nonchalant:hud:rect', JSON.stringify(rect));
+    if (templates) localStorage.setItem('nonchalant:hud:templates', JSON.stringify(templates));
+    localStorage.setItem('nonchalant:hud:orientation', orientation);
+  } catch {}
+}
+function loadSavedSettings() {
+  try {
+    const savedRect = localStorage.getItem('nonchalant:hud:rect');
+    if (savedRect) {
+      rect = JSON.parse(savedRect);
+      ($('region') as HTMLButtonElement).disabled = false;
+      $('recognition-status').textContent = 'Область доски загружена. Выберите экран для запуска.';
+    }
+    const savedTemplates = localStorage.getItem('nonchalant:hud:templates');
+    if (savedTemplates) templates = JSON.parse(savedTemplates);
+    const savedOri = localStorage.getItem('nonchalant:hud:orientation');
+    if (savedOri === 'white' || savedOri === 'black') {
+      orientation = savedOri as Orientation;
+      input('orientation').value = savedOri;
+    }
+  } catch {}
+}
+function startNewGame() {
+  try {
+    const initialFen = new Chess().fen();
+    const image = frame();
+    if (!templates) {
+      if (image && stable) {
+        try {
+          templates = calibrate(image, initialFen, orientation);
+          saveSettings();
+          message('Фигуры успешно обучены по начальной позиции!');
+        } catch {
+          message('Для первой калибровки убедитесь, что на экране видна вся стартовая позиция.');
+          return;
+        }
+      } else {
+        message('Сначала выберите экран и дождитесь устойчивого кадра стартовой доски.');
+        return;
+      }
+    }
+    tracker.seed(initialFen);
+    manual = null;
+    editing = false;
+    input('confirmed').checked = true;
+    updateMetadata(initialFen);
+    saveSettings();
+    $('recognition-status').textContent = 'Партия начата: следим за ходами с 1-го хода.';
+    message('🟢 Новая партия активна! Сделайте первый ход.');
+    window.hud.screenPosition(initialFen);
+  } catch (error) {
+    message(error instanceof Error ? error.message : 'Не удалось начать партию.');
+  }
+}
 function resetTracking(reason: string) {
   tracker.invalidate(); gate.reset(); manual = null; stable = false; lastFingerprint = ''; editing = false;
   input('confirmed').checked = false;
@@ -84,24 +140,38 @@ function scan() {
   if (overlayMode || state?.mode !== 'screen' || state.status === 'paused' || picking) return;
   try {
     const image = frame(); currentImage = image;
-    if (!image) { window.hud.screenPosition(null); if (tracker.currentFen) resetTracking('Захват приостановлен. Подтвердите позицию после восстановления.'); return; }
+    if (!image) { window.hud.screenPosition(null); if (tracker.currentFen) resetTracking('Захват приостановлен. Нажмите «Новая партия» после восстановления.'); return; }
     const observed = gate.observe(image);
     stable = observed.stable;
     if (observed.changed) { manual = null; window.hud.screenPosition(null); }
     if (!stable) { $('recognition-status').textContent = 'Ожидаем устойчивый кадр…'; window.hud.screenPosition(null); return; }
     if (editing) { window.hud.screenPosition(null); return; }
     if (manual?.fingerprint === observed.fingerprint) { window.hud.screenPosition(tracker.isGameOver ? null : manual.fen); return; }
-    if (!templates) { $('recognition-status').textContent = 'Кадр устойчив. Сначала обучите фигуры.'; window.hud.screenPosition(null); return; }
+    if (!templates) { $('recognition-status').textContent = 'Кадр устойчив. Нажмите «🟢 Начать новую партию» для обучения.'; window.hud.screenPosition(null); return; }
     if (lastFingerprint !== observed.fingerprint) {
       lastFingerprint = observed.fingerprint;
       const result = recognize(image, templates, orientation);
       cells.clear(); result.cells.forEach(cell => cells.set(cell.square, cell.piece ?? '.')); drawEditor(result.cells);
       if (!result.confident) {
-        tracker.invalidate(); $('recognition-status').textContent = 'Есть неоднозначные клетки. Проверьте и исправьте позицию.';
+        tracker.invalidate(); $('recognition-status').textContent = 'Есть неоднозначные клетки. Нажмите «🟢 Начать новую партию» при старте игры.';
         window.hud.screenPosition(null); return;
       }
+
+      // Auto-detect new game if initial placement is observed
+      const initialPlacement = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
+      if (result.placement === initialPlacement && (!tracker.currentFen || tracker.isGameOver || tracker.currentFen.split(' ')[0] !== initialPlacement)) {
+        const initFen = new Chess().fen();
+        tracker.seed(initFen);
+        updateMetadata(initFen);
+        input('confirmed').checked = true;
+        $('recognition-status').textContent = 'Обнаружена новая партия: отслеживание начато с 1-го хода.';
+        message('🟢 Обнаружена новая партия: следим за ходами.');
+        window.hud.screenPosition(initFen);
+        return;
+      }
+
       const next = tracker.observe(result.placement);
-      $('recognition-status').textContent = next.fen ? 'Фигуры распознаны. Метаданные отслеживаются.' : next.reason || 'Подтвердите полный FEN.';
+      $('recognition-status').textContent = next.fen ? 'Фигуры распознаны. Метаданные отслеживаются.' : next.reason || 'Подтвердите FEN или нажмите «🟢 Новая партия».';
       if (next.fen) updateMetadata(next.fen);
     }
     const known = tracker.currentFen;
@@ -170,18 +240,19 @@ async function chooseScreens() {
 }
 async function capture(id: string) {
   try {
-    stopCapture(); resetTracking('Выберите область доски.'); templates = null; rect = null;
+    stopCapture();
     await window.hud.selectSource(id);
     stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 5, max: 5 } }, audio: false });
     const video = $<HTMLVideoElement>('capture-video'); video.srcObject = stream; await video.play();
     stream.getVideoTracks()[0].addEventListener('ended', () => { stopCapture(); resetTracking('Захват экрана завершён.'); });
     $('sources').replaceChildren(); $('capture-status').textContent = 'Захват включён · 5 кадров/с'; ($('region') as HTMLButtonElement).disabled = false;
-    showPicker();
+    if (!rect) showPicker();
+    else message('Захват активен с сохранённой областью. Нажмите «🟢 Начать новую партию».');
   } catch { message('Не удалось начать захват. Проверьте разрешение записи экрана и перезапустите HUD.'); }
 }
 function showPicker() {
   const video = $<HTMLVideoElement>('capture-video'); if (!video.videoWidth) return;
-  picking = true; proposed = null; resetTracking('Выберите точный квадрат доски.'); templates = null;
+  picking = true; proposed = null; resetTracking('Выберите точный квадрат доски.');
   const canvas = $<HTMLCanvasElement>('screen-preview'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!; ctx.drawImage(video, 0, 0);
   screenSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); $('picker').hidden = false;
@@ -198,7 +269,10 @@ function initializeControls() {
   void window.hud.getToken().then(token => { input('token').value = token; });
   $('choose').onclick = () => { void chooseScreens(); };
   $('region').onclick = showPicker;
-  input('orientation').onchange = () => { orientation = input('orientation').value as Orientation; resetTracking('Ориентация изменена. Подтвердите FEN.'); drawEditor(); };
+  $('new-game').onclick = startNewGame;
+  window.hud.onNewGame?.(startNewGame);
+  loadSavedSettings();
+  input('orientation').onchange = () => { orientation = input('orientation').value as Orientation; resetTracking('Ориентация изменена. Нажмите «🟢 Новая партия».'); saveSettings(); drawEditor(); };
   $('load-fen').onclick = () => { try { loadFen(input('fen').value); message('Сравните редактор с кадром и подтвердите данные.'); } catch (e) { message((e as Error).message); } };
   $('initial').onclick = () => { loadFen(new Chess().fen()); message('Начальная позиция выбрана явно. Проверьте, что на экране она же.'); };
   $('edit').onclick = () => { beginEdit(); message('Исправьте фигуры и метаданные, затем подтвердите позицию.'); };
@@ -217,7 +291,9 @@ function initializeControls() {
   canvas.onpointerup = () => { selectionStart = null; };
   $('use-region').onclick = () => {
     if (!proposed || proposed.size < 256) { message('Выделите доску размером не менее 256 × 256 пикселей.'); return; }
-    rect = proposed; picking = false; $('picker').hidden = true; gate.reset(); message('Поставьте начальную позицию, проверьте её FEN и обучите фигуры.');
+    rect = proposed; picking = false; $('picker').hidden = true; gate.reset();
+    saveSettings();
+    message('Область доски сохранена! Откройте стартовую позицию и нажмите «🟢 Начать новую партию».');
   };
   window.hud.onSound(() => {
     const audio = new AudioContext(); const tone = audio.createOscillator(); const gain = audio.createGain(); tone.connect(gain); gain.connect(audio.destination); tone.frequency.value = 660; gain.gain.setValueAtTime(.03, audio.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + .15); tone.start(); tone.stop(audio.currentTime + .16); tone.onended = () => { void audio.close(); };

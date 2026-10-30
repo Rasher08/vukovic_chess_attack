@@ -15,5 +15,6 @@ export interface HudAPI {
   copyToken(): Promise<void>;
   onState(listener: (state: AppState) => void): () => void;
   onSound(listener: () => void): () => void;
+  onNewGame(listener: () => void): () => void;
 }
 declare global { interface Window { hud: HudAPI } }
