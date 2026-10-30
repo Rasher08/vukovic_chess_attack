@@ -37,14 +37,14 @@
       "target": [
         "portable",
         "nsis"
-      ],
-      "artifactName": "${productName}-${version}-${target}.${ext}"
+      ]
     },
     "nsis": {
       "oneClick": true,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "artifactName": "${productName}-${version}-setup.${ext}"
     },
     "portable": {
       "artifactName": "${productName}-${version}-portable.${ext}"
