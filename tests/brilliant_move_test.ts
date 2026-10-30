@@ -1,0 +1,161 @@
+import assert from 'node:assert/strict';
+import { Chess } from 'chess.js';
+import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
+import { inspectSacrifice, verifyBrilliantMove, type SacrificeCandidate } from '../src/lib/brilliantMove';
+import type { EngineLike, EngineResult } from '../src/lib/autoTraining';
+import { BrowserChessEngine } from '../src/lib/browserEngine';
+
+const cp = (value: number) => ({ kind: 'cp' as const, value });
+const mate = (value: number) => ({ kind: 'mate' as const, value });
+const uci = (move: { from: string; to: string; promotion?: string }) => move.from + move.to + (move.promotion || '');
+const greekFen = 'r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15';
+const greek = inspectSacrifice(greekFen, 'd3h7')!;
+assert.ok(greek);
+assert.equal(greek.san, 'Bxh7+');
+assert.equal(greek.acceptances.length, 1);
+assert.equal(greek.acceptances[0].san, 'Kxh7');
+assert.equal(greek.acceptances[0].investmentCp, 230, 'Account for the captured pawn, not just the lost bishop');
+assert.equal(greek.learner, 'w');
+assert.equal(new Chess(greek.acceptances[0].fenAfterAcceptance).turn(), 'w');
+
+assert.equal(inspectSacrifice(new Chess().fen(), 'g1f3'), null, 'An ordinary best move is not a sacrifice');
+assert.equal(inspectSacrifice(new Chess().fen(), 'e2e4'), null, 'Pawn moves do not enter this conservative piece-sacrifice detector');
+assert.equal(inspectSacrifice(new Chess().fen(), 'e2e5'), null);
+assert.equal(inspectSacrifice('invalid', 'e2e4'), null);
+assert.equal(inspectSacrifice(greekFen, 'd3h7\ngo infinite'), null);
+const trade = '4k3/8/2p5/3n4/2B5/8/8/4K3 w - - 0 1';
+assert.equal(inspectSacrifice(trade, 'c4d5'), null, 'Bxd5 cxd5 is an ordinary fair exchange');
+const protectedRook = 'k7/1r6/1Q6/8/8/8/8/R3K3 w - - 0 1';
+assert.equal(inspectSacrifice(protectedRook, 'a1a7'), null, 'Ra7+ Rxa7 Qxa7 is not a material sacrifice');
+const forced = '7k/8/8/8/2b5/8/1B6/K6r w - - 0 1';
+assert.deepEqual(new Chess(forced).moves(), ['Bc1']);
+assert.equal(inspectSacrifice(forced, 'b2c1'), null, 'A sole legal move is not labelled brilliant');
+
+const opera = new Chess();
+for (const san of ['e4', 'e5', 'Nf3', 'd6', 'd4', 'Bg4', 'dxe5', 'Bxf3', 'Qxf3', 'dxe5', 'Bc4', 'Nf6', 'Qb3', 'Qe7', 'Nc3', 'c6', 'Bg5', 'b5', 'Nxb5', 'cxb5', 'Bxb5+', 'Nbd7', 'O-O-O', 'Rd8', 'Rxd7', 'Rxd7', 'Rd1', 'Qe6', 'Bxd7+', 'Nxd7']) opera.move(san);
+const queen = inspectSacrifice(opera.fen(), 'b3b8')!;
+assert.ok(queen);
+assert.equal(queen.san, 'Qb8+');
+assert.equal(queen.acceptances[0].san, 'Nxb8');
+assert.equal(queen.acceptances[0].investmentCp, 900);
+const acceptedQueen = new Chess(queen.acceptances[0].fenAfterAcceptance);
+acceptedQueen.move('Rd8#');
+assert.equal(acceptedQueen.isCheckmate(), true, 'The classic queen sacrifice has a legal mating continuation');
+
+function result(game: Chess, score: EngineResult['score'], preferred?: string, depth = 16): EngineResult {
+  const legal = game.moves({ verbose: true });
+  const bestMove = preferred || uci(legal.find(move => move.san.endsWith('#')) || legal[0]);
+  return { bestMove, score, pv: [bestMove], depth };
+}
+
+function fakeEngine(candidate: SacrificeCandidate, config: {
+  best?: EngineResult['score']; chosen?: EngineResult['score']; alternative?: EngineResult['score'];
+  accepted?: EngineResult['score']; depth?: number; bestIsDifferent?: boolean; failAcceptance?: boolean;
+  onSearch?: (call: number) => void;
+} = {}) {
+  const calls: { fen: string; searchMoves?: string[]; nodes?: number }[] = [];
+  const engine: EngineLike = { async analyze(fen, options) {
+    calls.push({ fen, searchMoves: options?.searchMoves, nodes: options?.nodes });
+    config.onSearch?.(calls.length);
+    const game = new Chess(fen);
+    if (fen !== candidate.fenBefore) {
+      if (config.failAcceptance) throw new Error('WASM unavailable');
+      return result(game, config.accepted === undefined ? cp(120) : config.accepted, undefined, config.depth);
+    }
+    const forcedCandidate = options?.searchMoves?.length === 1 && options.searchMoves[0] === candidate.uci;
+    const alternative = options?.searchMoves && !options.searchMoves.includes(candidate.uci);
+    const bestMove = options?.searchMoves?.[0] || (config.bestIsDifferent ? game.moves({ verbose: true }).map(uci).find(move => move !== candidate.uci)! : candidate.uci);
+    const score = alternative ? config.alternative === undefined ? cp(0) : config.alternative
+      : forcedCandidate ? config.chosen === undefined ? cp(100) : config.chosen
+        : config.best === undefined ? cp(100) : config.best;
+    return result(game, score, bestMove, config.depth);
+  } };
+  return { engine, calls };
+}
+
+function baseline(candidate: SacrificeCandidate, score: EngineResult['score'] = cp(100)) {
+  return result(new Chess(candidate.fenBefore), score, candidate.uci);
+}
+
+function rotateAndSwap(fen: string): string {
+  const parts = fen.split(' ');
+  const expanded = parts[0].split('/').join('').replace(/[1-8]/g, digit => '.'.repeat(Number(digit)));
+  const swapped = expanded.split('').reverse().map(piece => piece === '.' ? '.' : piece === piece.toUpperCase() ? piece.toLowerCase() : piece.toUpperCase()).join('');
+  const rows = Array.from({ length: 8 }, (_, index) => swapped.slice(index * 8, index * 8 + 8).replace(/\.+/g, empty => String(empty.length)));
+  return `${rows.join('/')} b - - 0 15`;
+}
+
+async function run() {
+  const verified = fakeEngine(greek, { bestIsDifferent: true });
+  const yes = await verifyBrilliantMove(greek, baseline(greek), baseline(greek), verified.engine, { nodes: 200_000 });
+  assert.equal(yes.brilliant, true);
+  assert.match(yes.reason!, /Bxh7\+/); assert.match(yes.reason!, /Kxh7/);
+  assert.equal(verified.calls.length, 3, 'Unrestricted, forced chosen, and actual acceptance must all be verified');
+  assert(verified.calls.every(call => call.nodes! >= 600_000));
+  assert.deepEqual(verified.calls[1].searchMoves, [greek.uci]);
+  assert.equal(verified.calls[2].fen, greek.acceptances[0].fenAfterAcceptance);
+
+  const losingAcceptance = fakeEngine(greek, { accepted: cp(-250) });
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek), baseline(greek), losingAcceptance.engine, { nodes: 600_000 })).brilliant, false, 'A refutation after accepting the sacrifice suppresses the badge');
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek), baseline(greek), fakeEngine(greek, { chosen: cp(-100), bestIsDifferent: true }).engine, { nodes: 600_000 })).brilliant, false);
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek), baseline(greek), fakeEngine(greek, { failAcceptance: true }).engine, { nodes: 600_000 })).brilliant, false, 'Failure cannot manufacture a brilliant');
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek), baseline(greek), fakeEngine(greek, { accepted: null }).engine, { nodes: 600_000 })).brilliant, false);
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek), baseline(greek), fakeEngine(greek, { depth: 8 }).engine, { nodes: 600_000 })).brilliant, false, 'Unresolved shallow analysis is insufficient');
+
+  const easyWin = fakeEngine(queen, { best: mate(2), alternative: cp(700), accepted: mate(1) });
+  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), easyWin.engine, { nodes: 600_000 })).brilliant, false, 'If another ordinary move also wins easily, suppress !!');
+  assert.equal(easyWin.calls.length, 2);
+  const onlyWin = fakeEngine(queen, { best: mate(2), alternative: cp(0), accepted: mate(1) });
+  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), onlyWin.engine, { nodes: 600_000 })).brilliant, true, 'A unique mating sacrifice is not excluded merely because best score is mate');
+  assert(onlyWin.calls[1].searchMoves!.every(move => move !== queen.uci));
+  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), fakeEngine(queen, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, false);
+
+  const blackFen = rotateAndSwap(greekFen);
+  const black = inspectSacrifice(blackFen, 'e6a2')!;
+  assert.ok(black); assert.equal(black.learner, 'b');
+  assert.equal(new Chess(black.acceptances[0].fenAfterAcceptance).turn(), 'b');
+  assert.equal((await verifyBrilliantMove(black, baseline(black), baseline(black), fakeEngine(black).engine, { nodes: 600_000 })).brilliant, true, 'Acceptance scores are already learner POV even for Black');
+  assert.equal((await verifyBrilliantMove(black, baseline(black), baseline(black), fakeEngine(black, { accepted: cp(-120) }).engine, { nodes: 600_000 })).brilliant, false);
+
+  const abort = new AbortController(); abort.abort();
+  await assert.rejects(verifyBrilliantMove(greek, baseline(greek), baseline(greek), fakeEngine(greek).engine, { nodes: 600_000, signal: abort.signal }), { name: 'AbortError' });
+  const during = new AbortController();
+  const interrupted = fakeEngine(greek, { onSearch: () => during.abort() });
+  await assert.rejects(verifyBrilliantMove(greek, baseline(greek), baseline(greek), interrupted.engine, { nodes: 600_000, signal: during.signal }), { name: 'AbortError' });
+  assert.equal(interrupted.calls.length, 1, 'Cancellation must stop later searches');
+  console.log('Brilliant detector: legal sacrifice investment, fair trades, protected offers, forced moves, verified acceptance, same-root quality, Black POV, unique mating sacrifice, failures and cancellation passed.');
+
+  class RealWorkerBridge extends EventTarget {
+    child = spawn(process.execPath, [new URL('../public/engine/stockfish-19-lite-single.js', import.meta.url).pathname], { stdio: ['pipe', 'pipe', 'pipe'] });
+    constructor() {
+      super();
+      createInterface({ input: this.child.stdout }).on('line', data => this.dispatchEvent(new MessageEvent('message', { data })));
+      this.child.stderr.on('data', bytes => process.stderr.write(bytes));
+    }
+    postMessage(command: string) { this.child.stdin.write(command + '\n'); }
+    terminate() { this.child.kill(); }
+  }
+  const bridge = new RealWorkerBridge();
+  const real = new BrowserChessEngine({ workerFactory: () => bridge as unknown as Worker, startupTimeoutMs: 15000 });
+  try {
+    const best = await real.analyze(queen.fenBefore, { nodes: 200000 });
+    const played = best.bestMove === queen.uci ? best : await real.analyze(queen.fenBefore, { nodes: 200000, searchMoves: [queen.uci] });
+    const traces: unknown[] = [];
+    const traced: EngineLike = { async analyze(fen, options) { const response = await real.analyze(fen, options); traces.push({ type: fen === queen.fenBefore ? options?.searchMoves ? 'alternative/forced' : 'root' : 'acceptance', bestMove: response.bestMove, score: response.score, depth: response.depth }); return response; } };
+    const actual = await verifyBrilliantMove(queen, best, played, traced, { nodes: 600000 });
+    assert.equal(actual.brilliant, false, 'Morphy Qb8+ is not labelled by this conservative criterion when Qb7 also retains a clear engine advantage');
+    assert(traces.length >= 2);
+    const greekBest = await real.analyze(greek.fenBefore, { nodes: 200000 });
+    const greekPlayed = greekBest.bestMove === greek.uci ? greekBest : await real.analyze(greek.fenBefore, { nodes: 200000, searchMoves: [greek.uci] });
+    const greekTraces: unknown[] = [];
+    const greekTraced: EngineLike = { async analyze(fen, options) { const response = await real.analyze(fen, options); greekTraces.push({ type: fen === greek.fenBefore ? options?.searchMoves ? 'alternative/forced' : 'root' : 'acceptance', bestMove: response.bestMove, score: response.score, depth: response.depth }); return response; } };
+    const actualGreek = await verifyBrilliantMove(greek, greekBest, greekPlayed, greekTraced, { nodes: 600000 });
+    assert.equal(actualGreek.brilliant, true, 'The actual bundled WASM verifies Lasker Bxh7+, its alternatives and Kxh7 acceptance');
+    assert.match(actualGreek.reason!, /Bxh7\+/);
+    assert(greekTraces.length >= 3);
+    console.log('PASS actual bundled WASM: Lasker Bxh7+ is verified; Morphy Qb8+ is conservatively suppressed because Qb7 also keeps a clear advantage.');
+  } finally { real.dispose(); }
+}
+
+run().catch(error => { console.error(error); process.exitCode = 1; });

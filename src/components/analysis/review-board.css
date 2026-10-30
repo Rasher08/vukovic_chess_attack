@@ -1,0 +1,12 @@
+.review-board-stage{position:relative;min-width:0}
+.review-piece-badge.analysis-badge{position:absolute;z-index:5;transform:translate(-50%,-50%);pointer-events:none;min-width:0;padding:0;border:2px solid var(--paper);box-shadow:0 1px 4px #0006;font-weight:800;letter-spacing:-.07em;line-height:1}
+.review-piece-badge.analysis-badge.is-brilliant{background:#20b7b0;color:#fff}
+.review-piece-badge.analysis-badge.is-best{background:#7fa944;color:#fff}
+.review-piece-badge.analysis-badge.is-excellent{background:#689ab6;color:#fff}
+.review-piece-badge.analysis-badge.is-good{background:#6f8076;color:#fff}
+.review-piece-badge.analysis-badge.is-inaccuracy{background:#d7a941;color:#fff}
+.review-piece-badge.analysis-badge.is-mistake{background:#ef9a4b;color:#fff}
+.review-piece-badge.analysis-badge.is-blunder{background:#e95757;color:#fff}
+.review-piece-badge.analysis-badge.is-forced{background:#6b6d75;color:#fff}
+.review-piece-badge.analysis-badge.is-book{background:#9b805b;color:#fff;letter-spacing:0;font-weight:400}
+.review-piece-badge.analysis-badge.is-trilliant{background:#a06cce;color:#fff}.review-piece-badge.analysis-badge.is-great{background:#6798bc;color:#fff}.review-piece-badge.analysis-badge.is-excellent{background:#91b568;color:#fff}.review-piece-badge.analysis-badge.is-good{background:#9da875;color:#fff}.review-piece-badge.analysis-badge.is-miss{background:#ed7b6c;color:#fff}.review-piece-badge>svg{flex-shrink:0}.review-piece-adventure{position:absolute;z-index:5;transform:translate(-50%,-50%);pointer-events:none;background:var(--surface);border-color:#b19362;box-shadow:0 1px 4px #0004;padding:1px 3px}

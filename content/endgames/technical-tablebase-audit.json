@@ -1,0 +1,650 @@
+{
+  "source": "https://tablebase.lichess.ovh/standard",
+  "positions": [
+    {
+      "id": "opposition-win",
+      "initialFen": "8/4k3/8/4K3/4P3/8/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "e5d4",
+          "san": "Kd4",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "e5f4",
+          "san": "Kf4",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "e5d5",
+          "san": "Kd5",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "e5f5",
+          "san": "Kf5",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "outside-passer",
+      "initialFen": "8/8/3k4/5p2/P1K2P2/8/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 1,
+      "precise_dtz": 1,
+      "dtm": 33,
+      "bestMoves": [
+        {
+          "uci": "c4d4",
+          "san": "Kd4",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "c4b5",
+          "san": "Kb5",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "a4a5",
+          "san": "a5",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "c4b4",
+          "san": "Kb4",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "lucena",
+      "initialFen": "4K3/4P1k1/8/8/8/8/r7/3R4 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 11,
+      "precise_dtz": 11,
+      "dtm": 35,
+      "bestMoves": [
+        {
+          "uci": "d1g1",
+          "san": "Rg1+",
+          "category": "loss",
+          "dtz": -10,
+          "precise_dtz": -10
+        },
+        {
+          "uci": "d1e1",
+          "san": "Re1",
+          "category": "loss",
+          "dtz": -16,
+          "precise_dtz": -16
+        },
+        {
+          "uci": "d1c1",
+          "san": "Rc1",
+          "category": "loss",
+          "dtz": -16,
+          "precise_dtz": -16
+        },
+        {
+          "uci": "e8d7",
+          "san": "Kd7",
+          "category": "loss",
+          "dtz": -14,
+          "precise_dtz": -14
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "philidor",
+      "initialFen": "8/4k3/1r6/4K3/4P3/8/8/R7 b - - 0 1",
+      "playerColor": "b",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "b6b2",
+          "san": "Rb2",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "b6b3",
+          "san": "Rb3",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "b6b4",
+          "san": "Rb4",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "b6b5",
+          "san": "Rb5+",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "rook-pawn-king",
+      "initialFen": "1r4k1/R7/6KP/8/8/8/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "h6h7",
+          "san": "h7+",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a7a1",
+          "san": "Ra1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a7a2",
+          "san": "Ra2",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a7a3",
+          "san": "Ra3",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "wrong-bishop",
+      "initialFen": "k7/8/P1K5/8/1B6/8/8/8 b - - 0 1",
+      "playerColor": "b",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "a8a7",
+          "san": "Ka7",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a8b8",
+          "san": "Kb8",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "right-bishop",
+      "initialFen": "k7/8/P1K5/8/2B5/8/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 3,
+      "precise_dtz": 3,
+      "dtm": 9,
+      "bestMoves": [
+        {
+          "uci": "c6b6",
+          "san": "Kb6",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "c6c7",
+          "san": "Kc7",
+          "category": "loss",
+          "dtz": -6,
+          "precise_dtz": -6
+        },
+        {
+          "uci": "c4e6",
+          "san": "Be6",
+          "category": "loss",
+          "dtz": -8,
+          "precise_dtz": -8
+        },
+        {
+          "uci": "c4f1",
+          "san": "Bf1",
+          "category": "loss",
+          "dtz": -6,
+          "precise_dtz": -6
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "knight-rook-pawn",
+      "initialFen": "k7/8/P1K5/2N5/8/8/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 7,
+      "precise_dtz": 7,
+      "dtm": 19,
+      "bestMoves": [
+        {
+          "uci": "c5e6",
+          "san": "Ne6",
+          "category": "loss",
+          "dtz": -6,
+          "precise_dtz": -6
+        },
+        {
+          "uci": "c6b6",
+          "san": "Kb6",
+          "category": "loss",
+          "dtz": -6,
+          "precise_dtz": -6
+        },
+        {
+          "uci": "c6b5",
+          "san": "Kb5",
+          "category": "loss",
+          "dtz": -8,
+          "precise_dtz": -8
+        },
+        {
+          "uci": "c5b3",
+          "san": "Nb3",
+          "category": "loss",
+          "dtz": -10,
+          "precise_dtz": -10
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "opposite-bishops",
+      "initialFen": "8/5k2/7b/3PK3/2B5/8/8/8 b - - 0 1",
+      "playerColor": "b",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "h6c1",
+          "san": "Bc1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "h6d2",
+          "san": "Bd2",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "h6e3",
+          "san": "Be3",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "h6g5",
+          "san": "Bg5",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "queen-rookpawn",
+      "initialFen": "8/k7/8/8/8/5K2/p7/3Q4 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 3,
+      "precise_dtz": 3,
+      "dtm": 15,
+      "bestMoves": [
+        {
+          "uci": "f3e4",
+          "san": "Ke4",
+          "category": "loss",
+          "dtz": -4,
+          "precise_dtz": -4
+        },
+        {
+          "uci": "d1a1",
+          "san": "Qa1",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "d1a4",
+          "san": "Qa4+",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "d1c1",
+          "san": "Qc1",
+          "category": "loss",
+          "dtz": -4,
+          "precise_dtz": -4
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "queen-bishoppawn",
+      "initialFen": "8/8/8/8/8/5K2/2pk4/7Q w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 11,
+      "precise_dtz": 11,
+      "dtm": 21,
+      "bestMoves": [
+        {
+          "uci": "h1h6",
+          "san": "Qh6+",
+          "category": "loss",
+          "dtz": -10,
+          "precise_dtz": -10
+        },
+        {
+          "uci": "h1h2",
+          "san": "Qh2+",
+          "category": "loss",
+          "dtz": -10,
+          "precise_dtz": -10
+        },
+        {
+          "uci": "h1g2",
+          "san": "Qg2+",
+          "category": "loss",
+          "dtz": -11,
+          "precise_dtz": -11
+        },
+        {
+          "uci": "h1a1",
+          "san": "Qa1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "rook-v-bishop",
+      "initialFen": "6k1/8/7b/8/8/8/4K3/R7 w - - 0 1",
+      "playerColor": "w",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "a1b1",
+          "san": "Rb1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a1c1",
+          "san": "Rc1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a1d1",
+          "san": "Rd1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a1e1",
+          "san": "Re1",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "connected-passers",
+      "initialFen": "8/8/8/2k5/4PP2/5K2/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 1,
+      "precise_dtz": 1,
+      "dtm": 29,
+      "bestMoves": [
+        {
+          "uci": "f4f5",
+          "san": "f5",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "e4e5",
+          "san": "e5",
+          "category": "loss",
+          "dtz": -4,
+          "precise_dtz": -4
+        },
+        {
+          "uci": "f3e3",
+          "san": "Ke3",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        },
+        {
+          "uci": "f3g4",
+          "san": "Kg4",
+          "category": "loss",
+          "dtz": -2,
+          "precise_dtz": -2
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "distant-opposition",
+      "initialFen": "8/4k3/8/8/4K3/4P3/8/8 w - - 0 1",
+      "playerColor": "w",
+      "category": "win",
+      "dtz": 5,
+      "precise_dtz": 5,
+      "dtm": 33,
+      "bestMoves": [
+        {
+          "uci": "e4d5",
+          "san": "Kd5",
+          "category": "loss",
+          "dtz": -4,
+          "precise_dtz": -4
+        },
+        {
+          "uci": "e4e5",
+          "san": "Ke5",
+          "category": "loss",
+          "dtz": -4,
+          "precise_dtz": -4
+        },
+        {
+          "uci": "e4f5",
+          "san": "Kf5",
+          "category": "loss",
+          "dtz": -4,
+          "precise_dtz": -4
+        },
+        {
+          "uci": "e4d3",
+          "san": "Kd3",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        }
+      ],
+      "error": null
+    },
+    {
+      "id": "opposition-hold",
+      "initialFen": "8/8/4k3/8/3KP3/8/8/8 b - - 0 1",
+      "playerColor": "b",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "e6d6",
+          "san": "Kd6",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "e6f6",
+          "san": "Kf6",
+          "category": "win",
+          "dtz": 7,
+          "precise_dtz": 7
+        },
+        {
+          "uci": "e6d7",
+          "san": "Kd7",
+          "category": "win",
+          "dtz": 7,
+          "precise_dtz": 7
+        },
+        {
+          "uci": "e6f7",
+          "san": "Kf7",
+          "category": "win",
+          "dtz": 7,
+          "precise_dtz": 7
+        },
+        {
+          "uci": "e6e7",
+          "san": "Ke7",
+          "category": "win",
+          "dtz": 5,
+          "precise_dtz": 5
+        }
+      ]
+    },
+    {
+      "id": "rook-behind-passer",
+      "initialFen": "R7/6k1/P7/8/8/5K2/r7/8 b - - 0 1",
+      "playerColor": "b",
+      "category": "draw",
+      "dtz": 0,
+      "precise_dtz": 0,
+      "dtm": 0,
+      "bestMoves": [
+        {
+          "uci": "a2b2",
+          "san": "Rb2",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a2c2",
+          "san": "Rc2",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a2d2",
+          "san": "Rd2",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a2a4",
+          "san": "Ra4",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a2a5",
+          "san": "Ra5",
+          "category": "draw",
+          "dtz": 0,
+          "precise_dtz": 0
+        },
+        {
+          "uci": "a2h2",
+          "san": "Rh2",
+          "category": "win",
+          "dtz": 35,
+          "precise_dtz": 35
+        }
+      ]
+    }
+  ]
+}

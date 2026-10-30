@@ -1,0 +1,490 @@
+{
+  "generatedAt": "2026-10-24T13:07:29.548Z",
+  "engine": "/tmp/vukovic-tools/stockfish/stockfish-macos-universal",
+  "nodesPerSearch": 500000,
+  "threads": 1,
+  "hashMb": 64,
+  "purpose": "First-move quality audit, not proof of every continuation or uniqueness",
+  "report": [
+    {
+      "id": "opera-break",
+      "initialFen": "rn2kb1r/p3qppp/2p2n2/1p2p1B1/2B1P3/1QN5/PPP2PPP/R3K2R w KQkq - 0 10",
+      "suppliedMove": "c3b5",
+      "best": {
+        "bestmove": "c3b5",
+        "score": {
+          "type": "cp",
+          "value": 444
+        },
+        "depth": 19,
+        "pv": "c3b5 e7b4 b5c3 b4b3 a2b3 a7a5 f2f3 b8d7 c3a4 f8d6 e1e2 d6c7 h1d1 e8e7 g5e3 h8d8 a4c5 h7h6 d1d3 d7c5 e3c5 e7e8 c5f2 d8d3 c4d3"
+      },
+      "supplied": {
+        "bestmove": "c3b5",
+        "score": {
+          "type": "cp",
+          "value": 444
+        },
+        "depth": 19,
+        "pv": "c3b5 e7b4 b5c3 b4b3 a2b3 a7a5 f2f3 b8d7 c3a4 f8d6 e1e2 d6c7 h1d1 e8e7 g5e3 h8d8 a4c5 h7h6 d1d3 d7c5 e3c5 e7e8 c5f2 d8d3 c4d3"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "steinitz-bind",
+      "initialFen": "r6r/pp1qnkpp/5p2/3p4/3N4/8/PP2QPPP/2R1R1K1 w - - 2 19",
+      "suppliedMove": "d4e6",
+      "best": {
+        "bestmove": "d4e6",
+        "score": {
+          "type": "cp",
+          "value": 307
+        },
+        "depth": 20,
+        "pv": "d4e6 e7c6 e6c5 d7f5 c5b7 f5d7 b7c5 d7d6 e2h5 g7g6 h5h4 c6d8 h4h6 a7a5 h2h4 a8a7 a2a3 a7e7"
+      },
+      "supplied": {
+        "bestmove": "d4e6",
+        "score": {
+          "type": "cp",
+          "value": 307
+        },
+        "depth": 20,
+        "pv": "d4e6 e7c6 e6c5 d7f5 c5b7 f5d7 b7c5 d7d6 e2h5 g7g6 h5h4 c6d8 h4h6 a7a5 h2h4 a8a7 a2a3 a7e7"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "castle-choice",
+      "initialFen": "r3k2r/1qp2p2/p1n1b2p/1pbNP1p1/8/1P3NB1/1PP1QPPP/R2R2K1 b kq - 0 16",
+      "suppliedMove": "e8c8",
+      "best": {
+        "bestmove": "e8c8",
+        "score": {
+          "type": "cp",
+          "value": 13
+        },
+        "depth": 18,
+        "pv": "e8c8 d5e3 c6d4 f3d4 c5d4 c2c4 h6h5 h2h3 h5h4 g3h2 d4e3 e2e3 b5c4 b3c4 g5g4 h3g4 e6g4 f2f3 h4h3 e5e6 g4e6 d1d8 h8d8"
+      },
+      "supplied": {
+        "bestmove": "e8c8",
+        "score": {
+          "type": "cp",
+          "value": 13
+        },
+        "depth": 18,
+        "pv": "e8c8 d5e3 c6d4 f3d4 c5d4 c2c4 h6h5 h2h3 h5h4 g3h2 d4e3 e2e3 b5c4 b3c4 g5g4 h3g4 e6g4 f2f3 h4h3 e5e6 g4e6 d1d8 h8d8"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "double-check",
+      "initialFen": "1r2k1r1/pbppnp1p/1bn2P2/8/Q7/B1PB1q2/P4PPP/3RR1K1 w - - 0 20",
+      "suppliedMove": "e1e7",
+      "best": {
+        "bestmove": "e1e7",
+        "score": {
+          "type": "cp",
+          "value": 416
+        },
+        "depth": 17,
+        "pv": "e1e7 e8d8 e7d7 d8c8 d7d8 c8d8 d3e4 c6d4 e4f3 b7f3 g2g3 g8g4 a3b2 g4g5 c3d4 g5a5 a4b3 f3d1 b3d1 a5a2 b2c3 d8c8 d1g4 c8b7"
+      },
+      "supplied": {
+        "bestmove": "e1e7",
+        "score": {
+          "type": "cp",
+          "value": 416
+        },
+        "depth": 17,
+        "pv": "e1e7 e8d8 e7d7 d8c8 d7d8 c8d8 d3e4 c6d4 e4f3 b7f3 g2g3 g8g4 a3b2 g4g5 c3d4 g5a5 a4b3 f3d1 b3d1 a5a2 b2c3 d8c8 d1g4 c8b7"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "target-e7",
+      "initialFen": "r1r1k3/pp1qn2p/5pp1/3p2N1/6Q1/8/PP3PPP/2R1R1K1 w - - 2 22",
+      "suppliedMove": "e1e7",
+      "best": {
+        "bestmove": "e1e7",
+        "score": {
+          "type": "cp",
+          "value": 635
+        },
+        "depth": 18,
+        "pv": "e1e7 d7e7 c1c8 a8c8 g4c8 e7d8 c8d8 e8d8 g5h7 d8e7 g2g4 b7b6 g1g2 a7a5 g4g5 f6f5 g2f1"
+      },
+      "supplied": {
+        "bestmove": "e1e7",
+        "score": {
+          "type": "cp",
+          "value": 635
+        },
+        "depth": 18,
+        "pv": "e1e7 d7e7 c1c8 a8c8 g4c8 e7d8 c8d8 e8d8 g5h7 d8e7 g2g4 b7b6 g1g2 a7a5 g4g5 f6f5 g2f1"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "gift-preparation",
+      "initialFen": "r4rk1/1b2bppp/ppq1pn2/2ppB3/5P2/1P1BP1N1/P1PPQ1PP/R4RK1 w - - 0 14",
+      "suppliedMove": "g3h5",
+      "best": {
+        "bestmove": "g3h5",
+        "score": {
+          "type": "cp",
+          "value": 190
+        },
+        "depth": 18,
+        "pv": "g3h5 f8c8 h5f6 e7f6 d3h7 g8f8 f1f3 f8e7 f3g3 c8h8 h7d3 b6b5 c2c3 a8d8 a1f1 c5c4 d3c2 a6a5"
+      },
+      "supplied": {
+        "bestmove": "g3h5",
+        "score": {
+          "type": "cp",
+          "value": 190
+        },
+        "depth": 18,
+        "pv": "g3h5 f8c8 h5f6 e7f6 d3h7 g8f8 f1f3 f8e7 f3g3 c8h8 h7d3 b6b5 c2c3 a8d8 a1f1 c5c4 d3c2 a6a5"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "double-sacrifice",
+      "initialFen": "r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15",
+      "suppliedMove": "d3h7",
+      "best": {
+        "bestmove": "d3h7",
+        "score": {
+          "type": "cp",
+          "value": 644
+        },
+        "depth": 18,
+        "pv": "d3h7 g8h7 e2h5 h7g8 e5g7 g8g7 h5g4 g7h7 f1f3 e6e5 f3h3 c6h6 g4f5 h7g7 h3h6 g7h6 g1h1"
+      },
+      "supplied": {
+        "bestmove": "d3h7",
+        "score": {
+          "type": "cp",
+          "value": 644
+        },
+        "depth": 18,
+        "pv": "d3h7 g8h7 e2h5 h7g8 e5g7 g8g7 h5g4 g7h7 f1f3 e6e5 f3h3 c6h6 g4f5 h7g7 h3h6 g7h6 g1h1"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "rook-lift",
+      "initialFen": "r4r2/1b2bp1k/ppq1p3/2pp4/5PQ1/1P2P3/P1PP2PP/R4RK1 w - - 2 19",
+      "suppliedMove": "f1f3",
+      "best": {
+        "bestmove": "f1f3",
+        "score": {
+          "type": "cp",
+          "value": 642
+        },
+        "depth": 18,
+        "pv": "f1f3 e6e5 f3h3 c6h6 h3h6 h7h6 g4d7 a8e8 d7b7 e5f4 b7b6 h6g7 b6c7 f4e3 c7g3 g7h7 d2e3"
+      },
+      "supplied": {
+        "bestmove": "f1f3",
+        "score": {
+          "type": "cp",
+          "value": 642
+        },
+        "depth": 18,
+        "pv": "f1f3 e6e5 f3h3 c6h6 h3h6 h7h6 g4d7 a8e8 d7b7 e5f4 b7b6 h6g7 b6c7 f4e3 c7g3 g7h7 d2e3"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "dragon-rook",
+      "initialFen": "2r3k1/pp1bpp1p/3p1npQ/q7/2r1P1P1/2N2P2/PPP1N3/2KR3R w - - 1 19",
+      "suppliedMove": "d1d3",
+      "best": {
+        "bestmove": "d1d5",
+        "score": {
+          "type": "cp",
+          "value": 104
+        },
+        "depth": 17,
+        "pv": "d1d5 a5d8 g4g5 f6h5 e2g3 d8f8 g3h5 g6h5 h6h5 f8g7 d5d2 c8c5 c3d5 d7e6 d5e7 g8f8 e7d5 e6d5 e4d5 c4f4 h5h3 g7g5 h3h7 g5f6 c1b1 f4f3"
+      },
+      "supplied": {
+        "bestmove": "d1d3",
+        "score": {
+          "type": "cp",
+          "value": 94
+        },
+        "depth": 17,
+        "pv": "d1d3 c8c5 a2a3 d7e6 c1b1 a7a6 e2f4 c4c3 g4g5 c3d3 g5f6 d3d1 h1d1 e7f6 d1h1 e6c4 b2b3 c4b3 c2b3 a5a3 h6h7 g8f8"
+      },
+      "centipawnDifference": 10
+    },
+    {
+      "id": "last-piece",
+      "initialFen": "b2r3r/k3qp1p/pn3np1/Nppp4/4PQ2/P1N2PPB/1PP4P/1K1R3R w - - 2 21",
+      "suppliedMove": "h1e1",
+      "best": {
+        "bestmove": "h1e1",
+        "score": {
+          "type": "cp",
+          "value": -32
+        },
+        "depth": 22,
+        "pv": "h1e1 d5d4 c3d5 b6d5 e4d5 e7d6 d1d4 a7b6 b2b4 d6f4 d4f4 f6d5 f4f7 h8e8 e1e8 d8e8 a5b3 e8e1 b1b2 c5b4 a3b4 e1e2 f7d7"
+      },
+      "supplied": {
+        "bestmove": "h1e1",
+        "score": {
+          "type": "cp",
+          "value": -32
+        },
+        "depth": 22,
+        "pv": "h1e1 d5d4 c3d5 b6d5 e4d5 e7d6 d1d4 a7b6 b2b4 d6f4 d4f4 f6d5 f4f7 h8e8 e1e8 d8e8 a5b3 e8e1 b1b2 c5b4 a3b4 e1e2 f7d7"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "central-break",
+      "initialFen": "4r1k1/pp2pp1p/2bp1npQ/q2N4/4PN2/5P2/PPP5/2K4R w - - 3 24",
+      "suppliedMove": "e4e5",
+      "best": {
+        "bestmove": "e4e5",
+        "score": {
+          "type": "cp",
+          "value": 710
+        },
+        "depth": 31,
+        "pv": "e4e5 c6d5 e5f6 e7f6 h6h7 g8f8 h7h8 f8e7 f4d5 a5d5 h1e1 d5e5 h8h4 e5e1 h4e1 e7f8 e1a5 a7a6 a5b4 f8g7 b4b7 e8e1 c1d2 e1g1 b7a6 g6g5 a6d6 g1g2 d2c3"
+      },
+      "supplied": {
+        "bestmove": "e4e5",
+        "score": {
+          "type": "cp",
+          "value": 710
+        },
+        "depth": 31,
+        "pv": "e4e5 c6d5 e5f6 e7f6 h6h7 g8f8 h7h8 f8e7 f4d5 a5d5 h1e1 d5e5 h8h4 e5e1 h4e1 e7f8 e1a5 a7a6 a5b4 f8g7 b4b7 e8e1 c1d2 e1g1 b7a6 g6g5 a6d6 g1g2 d2c3"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "dragon-blockade",
+      "initialFen": "2r3k1/pp1bpp1p/3p1npQ/q5r1/4P3/2NR1P2/PPP1N3/2K4R w - - 0 21",
+      "suppliedMove": "d3d5",
+      "best": {
+        "bestmove": "d3d5",
+        "score": {
+          "type": "cp",
+          "value": 508
+        },
+        "depth": 20,
+        "pv": "d3d5 g5d5 c3d5 a5c5 d5e7 g8h8 e7c8 c5c8 h6f4 h8g7 f4d6 c8c4 e2c3 d7c6 d6e5 a7a6 b2b3 c4e6 e5e6 f7e6 c1d2 h7h5 d2e3 g6g5"
+      },
+      "supplied": {
+        "bestmove": "d3d5",
+        "score": {
+          "type": "cp",
+          "value": 508
+        },
+        "depth": 20,
+        "pv": "d3d5 g5d5 c3d5 a5c5 d5e7 g8h8 e7c8 c5c8 h6f4 h8g7 f4d6 c8c4 e2c3 d7c6 d6e5 a7a6 b2b3 c4e6 e5e6 f7e6 c1d2 h7h5 d2e3 g6g5"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "counterplay-castle",
+      "initialFen": "r1q1k2r/2p2pp1/p1n1b2p/1pbpP3/7B/1PN2N2/1PP1QPPP/R2R2K1 b kq - 3 14",
+      "suppliedMove": "g7g5",
+      "best": {
+        "bestmove": "g7g5",
+        "score": {
+          "type": "cp",
+          "value": -68
+        },
+        "depth": 17,
+        "pv": "g7g5 c3d5 g5h4 d5f6 e8f8 f3h4 c5d4 h4f3 d4b2 a1b1 b2c3 d1d3 b5b4 b1d1 e6f5 d3d7 f5d7 f6d7 f8g7 f3h4"
+      },
+      "supplied": {
+        "bestmove": "g7g5",
+        "score": {
+          "type": "cp",
+          "value": -68
+        },
+        "depth": 17,
+        "pv": "g7g5 c3d5 g5h4 d5f6 e8f8 f3h4 c5d4 h4f3 d4b2 a1b1 b2c3 d1d3 b5b4 b1d1 e6f5 d3d7 f5d7 f6d7 f8g7 f3h4"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "defend-marshall",
+      "initialFen": "r1b2rk1/2p2ppp/p2b4/1p6/3P3q/1BP2Q1P/PP3nP1/RNB1R1K1 w - - 0 16",
+      "suppliedMove": "e1e2",
+      "best": {
+        "bestmove": "e1e2",
+        "score": {
+          "type": "cp",
+          "value": 124
+        },
+        "depth": 17,
+        "pv": "e1e2 c8h3 g2h3 f2h3 g1f1 g7g5 e2e4 d6f4 c1f4 h3f4 b1d2 a6a5 e4f4 g5f4 f3g2 g8h8 d2f3 h4g3 g2g3 f4g3 f1g2 a8e8 a1h1"
+      },
+      "supplied": {
+        "bestmove": "e1e2",
+        "score": {
+          "type": "cp",
+          "value": 124
+        },
+        "depth": 17,
+        "pv": "e1e2 c8h3 g2h3 f2h3 g1f1 g7g5 e2e4 d6f4 c1f4 h3f4 b1d2 a6a5 e4f4 g5f4 f3g2 g8h8 d2f3 h4g3 g2g3 f4g3 f1g2 a8e8 a1h1"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "decline-sacrifice",
+      "initialFen": "b2r3r/k4p1p/p2q1np1/NppP4/3R1Q2/P4PPB/1PP4P/1K2R3 b - - 0 24",
+      "suppliedMove": "a7b6",
+      "best": {
+        "bestmove": "a7b6",
+        "score": {
+          "type": "cp",
+          "value": 35
+        },
+        "depth": 20,
+        "pv": "a7b6 b2b4 d6f4 d4f4 f6d5 f4f7 c5b4 a3b4 d5b4 a5b3 a8d5 f7f6 b4c6 b3d4 h8f8 d4c6 d5c6 f6f8 d8f8 f3f4 a6a5 b1b2 c6d5 e1e5 d5c4 h3d7 a5a4"
+      },
+      "supplied": {
+        "bestmove": "a7b6",
+        "score": {
+          "type": "cp",
+          "value": 35
+        },
+        "depth": 20,
+        "pv": "a7b6 b2b4 d6f4 d4f4 f6d5 f4f7 c5b4 a3b4 d5b4 a5b3 a8d5 f7f6 b4c6 b3d4 h8f8 d4c6 d5c6 f6f8 d8f8 f3f4 a6a5 b1b2 c6d5 e1e5 d5c4 h3d7 a5a4"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "force-phase",
+      "initialFen": "b2r3r/k4p1p/p2q1np1/Np1P4/3p1Q2/P4PPB/1PP4P/1K2R3 w - - 0 25",
+      "suppliedMove": "e1e7",
+      "best": {
+        "bestmove": "e1e7",
+        "score": {
+          "type": "cp",
+          "value": 72
+        },
+        "depth": 20,
+        "pv": "e1e7 a7b6 f4d4 b6a5 b2b4 a5a4 d4c3 d6d5 e7a7 a8b7 a7b7 d5c4 c3f6 a4a3 f6a6 a3b4 h3d7 d8d7 b7d7 h8c8 a6d6 c8c5 d6d1 b4a5 d7d4 c4c3 d4d3 c3c4 d3a3 a5b4 a3a7 h7h5 h2h4 c5c7 d1d2"
+      },
+      "supplied": {
+        "bestmove": "e1e7",
+        "score": {
+          "type": "cp",
+          "value": 72
+        },
+        "depth": 20,
+        "pv": "e1e7 a7b6 f4d4 b6a5 b2b4 a5a4 d4c3 d6d5 e7a7 a8b7 a7b7 d5c4 c3f6 a4a3 f6a6 a3b4 h3d7 d8d7 b7d7 h8c8 a6d6 c8c5 d6d1 b4a5 d7d4 c4c3 d4d3 c3c4 d3a3 a5b4 a3a7 h7h5 h2h4 c5c7 d1d2"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "quiet-completion",
+      "initialFen": "3r3r/1R3p1p/6p1/1p6/2q5/5PPB/1Q5P/1K1k4 w - - 4 36",
+      "suppliedMove": "h3f1",
+      "best": {
+        "bestmove": "h3f1",
+        "score": {
+          "type": "cp",
+          "value": 326
+        },
+        "depth": 16,
+        "pv": "h3f1 d8d2 b7d7 d2d7 f1c4 b5c4 b2h8 d7d3 h8a8 f7f5 a8a4 d1e1 a4c4 d3f3 c4c7"
+      },
+      "supplied": {
+        "bestmove": "h3f1",
+        "score": {
+          "type": "cp",
+          "value": 326
+        },
+        "depth": 16,
+        "pv": "h3f1 d8d2 b7d7 d2d7 f1c4 b5c4 b2h8 d7d3 h8a8 f7f5 a8a4 d1e1 a4c4 d3f3 c4c7"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "queen-sacrifice",
+      "initialFen": "r3r1k1/pp3pbp/1qp3p1/2B5/2BP2b1/Q1n2N2/P4PPP/3R1K1R b - - 3 17",
+      "suppliedMove": "g4e6",
+      "best": {
+        "bestmove": "g4e6",
+        "score": {
+          "type": "cp",
+          "value": 268
+        },
+        "depth": 18,
+        "pv": "g4e6 a3c3 b6c5 d4c5 g7c3 c4e6 e8e6 g2g3 e6e7 a2a3 c3g7 f1g2 a8e8 d1d3 g7f8 h1c1 e7e2 f3d2 e8b8"
+      },
+      "supplied": {
+        "bestmove": "g4e6",
+        "score": {
+          "type": "cp",
+          "value": 268
+        },
+        "depth": 18,
+        "pv": "g4e6 a3c3 b6c5 d4c5 g7c3 c4e6 e8e6 g2g3 e6e7 a2a3 c3g7 f1g2 a8e8 d1d3 g7f8 h1c1 e7e2 f3d2 e8b8"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "quiet-threat",
+      "initialFen": "b2r3r/4Rp1p/p4np1/1p1q4/kP6/P1Q2PPB/2P4P/1K6 w - - 0 29",
+      "suppliedMove": "e7a7",
+      "best": {
+        "bestmove": "e7a7",
+        "score": {
+          "type": "cp",
+          "value": 64
+        },
+        "depth": 20,
+        "pv": "e7a7 a8b7 a7b7 d5c4 c3f6 a4a3 f6a6 a3b4 h3d7 d8d7 b7d7 h8c8 a6d6 c8c5 d6d2 c4c3 d2c3 b4c3 d7f7 h7h5 b1c1 g6g5 f3f4 g5f4 f7f4 c5e5"
+      },
+      "supplied": {
+        "bestmove": "e7a7",
+        "score": {
+          "type": "cp",
+          "value": 64
+        },
+        "depth": 20,
+        "pv": "e7a7 a8b7 a7b7 d5c4 c3f6 a4a3 f6a6 a3b4 h3d7 d8d7 b7d7 h8c8 a6d6 c8c5 d6d2 c4c3 d2c3 b4c3 d7f7 h7h5 b1c1 g6g5 f3f4 g5f4 f7f4 c5e5"
+      },
+      "centipawnDifference": 0
+    },
+    {
+      "id": "escape-route",
+      "initialFen": "r4rk1/2p2ppp/p7/1p6/3P2P1/1BP2Q2/PP2KbP1/RNB4q w - - 0 21",
+      "suppliedMove": "c1d2",
+      "best": {
+        "bestmove": "e2d2",
+        "score": {
+          "type": "cp",
+          "value": 283
+        },
+        "depth": 18,
+        "pv": "e2d2 h1e1 d2c2 a8e8 c1d2 e8e2 c2d3 e2d2 b1d2 e1a1 f3f2 a1b2 f2f5 b2a1 f5d7 a1g1 d7c6 g1h2 b3d5 h7h5 g4h5 h2h5 d3c2 h5f5 d5e4 f5e6 c6e6"
+      },
+      "supplied": {
+        "bestmove": "c1d2",
+        "score": {
+          "type": "cp",
+          "value": 252
+        },
+        "depth": 17,
+        "pv": "c1d2 f2h4 e2d3 c7c5 b3d5 a8d8 g2g3 h1f3 d5f3 h4g3 d2e3 c5c4 d3e2 f8e8 b1d2 h7h5 d2e4 h5g4 e4g3 g4f3 e2f3 f7f6 a1h1 g7g5 h1h6"
+      },
+      "centipawnDifference": 31
+    }
+  ]
+}

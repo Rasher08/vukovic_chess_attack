@@ -1,0 +1,1931 @@
+[
+  {
+    "id": "opera-break",
+    "chapter": 1,
+    "game": "Morphy",
+    "headers": {
+      "Event": "Paris it",
+      "Site": "Paris",
+      "Date": "1858.??.??",
+      "Round": "?",
+      "White": "Morphy, Paul ",
+      "Black": "Duke Karl Count Isouard",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C41"
+    },
+    "fen": "rn2kb1r/p3qppp/2p2n2/1p2p1B1/2B1P3/1QN5/PPP2PPP/R3K2R w KQkq - 0 10",
+    "candidate": "Nxb5",
+    "lines": [
+      {
+        "score": "+503",
+        "san": [
+          "Nxb5",
+          "Na6",
+          "O-O-O",
+          "Nc5",
+          "Qf3",
+          "Nb7",
+          "Kb1",
+          "a6",
+          "Bxf6",
+          "gxf6",
+          "Nc3"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "+165",
+        "san": [
+          "Bxf6",
+          "Qxf6",
+          "Nxb5",
+          "cxb5",
+          "Bxb5+",
+          "Nc6",
+          "Qd5",
+          "Rc8",
+          "O-O-O",
+          "Qe6",
+          "Rd3"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "+50",
+        "san": [
+          "Bxb5",
+          "cxb5",
+          "O-O-O",
+          "Qc5",
+          "Bxf6",
+          "gxf6",
+          "Rd5",
+          "Qc6",
+          "Rhd1",
+          "Bh6+",
+          "Kb1"
+        ],
+        "depth": 18
+      }
+    ],
+    "candidateLine": {
+      "score": "+473",
+      "san": [
+        "Nxb5",
+        "Qb4+",
+        "Nc3",
+        "Qxb3",
+        "axb3",
+        "Nbd7",
+        "f3",
+        "a5",
+        "Ke2",
+        "Nb6",
+        "Be3"
+      ],
+      "depth": 20
+    },
+    "refined": {
+      "san": [
+        "Nxb5",
+        "Qb4+",
+        "Qxb4",
+        "Bxb4+",
+        "c3",
+        "cxb5",
+        "Bxb5+",
+        "Ke7",
+        "cxb4",
+        "a6",
+        "Bd3"
+      ],
+      "score": "+530",
+      "depth": 22,
+      "nodes": 2500403
+    }
+  },
+  {
+    "id": "steinitz-bind",
+    "chapter": 2,
+    "game": "Steinitz",
+    "headers": {
+      "Event": "Hastings",
+      "Site": "Hastings",
+      "Date": "1895.??.??",
+      "Round": "?",
+      "White": "Steinitz, William",
+      "Black": "Von Bardeleben, Curt",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C54"
+    },
+    "fen": "r6r/pp1qnkpp/5p2/3p4/3N4/8/PP2QPPP/2R1R1K1 w - - 2 19",
+    "candidate": "Ne6",
+    "lines": [
+      {
+        "score": "+294",
+        "san": [
+          "Ne6",
+          "Nc6"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "+12",
+        "san": [
+          "Qh5+",
+          "g6",
+          "Qh4",
+          "Rac8",
+          "Rcd1",
+          "Nf5",
+          "Nxf5",
+          "Qxf5",
+          "Qa4",
+          "Rce8",
+          "Rxe8"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "-4",
+        "san": [
+          "Qd3",
+          "Rac8",
+          "Rxc8",
+          "Nxc8",
+          "h4",
+          "h6",
+          "Qc2",
+          "Re8",
+          "Rc1",
+          "Nd6",
+          "Qc5"
+        ],
+        "depth": 17
+      }
+    ],
+    "candidateLine": {
+      "score": "+316",
+      "san": [
+        "Ne6",
+        "Qd6",
+        "Rc7",
+        "Rhc8",
+        "Rxb7",
+        "Rab8",
+        "Rxa7",
+        "Ra8",
+        "Rxa8",
+        "Rxa8",
+        "a3"
+      ],
+      "depth": 20
+    },
+    "refined": {
+      "san": [
+        "Ne6",
+        "Qd6",
+        "Rc7",
+        "Rhc8",
+        "Rxb7",
+        "Rab8",
+        "Rxa7",
+        "Ra8",
+        "Rxe7+",
+        "Kxe7",
+        "Nxg7+"
+      ],
+      "score": "+389",
+      "depth": 22,
+      "nodes": 2500111
+    }
+  },
+  {
+    "id": "castle-choice",
+    "chapter": 3,
+    "game": "Keres",
+    "headers": {
+      "Event": "World Championship 18th",
+      "Site": "NLD/URS",
+      "Date": "1948.??.??",
+      "Round": "18",
+      "White": "Keres, Paul",
+      "Black": "Reshevsky, Samuel Herman",
+      "Result": "0-1",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C81"
+    },
+    "fen": "r3k2r/1qp2p2/p1n1b2p/1pbNP1p1/8/1P3NB1/1PP1QPPP/R2R2K1 b kq - 0 16",
+    "candidate": "O-O-O",
+    "lines": [
+      {
+        "score": "+13",
+        "san": [
+          "O-O-O",
+          "Ne3"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "-330",
+        "san": [
+          "Rd8",
+          "Nf6+",
+          "Ke7",
+          "h3",
+          "Nd4",
+          "Nxd4",
+          "Rxd4",
+          "c3",
+          "Rxd1+",
+          "Rxd1",
+          "Rd8"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-418",
+        "san": [
+          "g4",
+          "Nf6+",
+          "Ke7",
+          "c3",
+          "gxf3",
+          "Qxf3",
+          "Bb6",
+          "h3",
+          "Rad8",
+          "Bh4",
+          "Kf8"
+        ],
+        "depth": 16
+      }
+    ],
+    "candidateLine": {
+      "score": "+19",
+      "san": [
+        "O-O-O",
+        "Ne3"
+      ],
+      "depth": 21
+    },
+    "refined": {
+      "san": [
+        "O-O-O",
+        "Ne3",
+        "Nd4",
+        "Nxd4",
+        "Rxd4",
+        "Rxd4",
+        "Bxd4",
+        "Rd1",
+        "Qe4",
+        "h3",
+        "Bxe3"
+      ],
+      "score": "+9",
+      "depth": 24,
+      "nodes": 2500330
+    }
+  },
+  {
+    "id": "double-check",
+    "chapter": 4,
+    "game": "Anderssen",
+    "headers": {
+      "Event": "Berlin 'Evergreen'",
+      "Site": "Berlin",
+      "Date": "1852.??.??",
+      "Round": "?",
+      "White": "Anderssen, Adolf",
+      "Black": "Dufresne, Jean",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C52"
+    },
+    "fen": "1r2k1r1/pbppnp1p/1bn2P2/8/Q7/B1PB1q2/P4PPP/3RR1K1 w - - 0 20",
+    "candidate": "Rxe7+",
+    "lines": [
+      {
+        "score": "+503",
+        "san": [
+          "Rxe7+",
+          "Kd8"
+        ],
+        "depth": 19
+      },
+      {
+        "score": "-669",
+        "san": [
+          "Be4",
+          "Qxf6",
+          "Kh1",
+          "Rd8",
+          "h3",
+          "Kf8",
+          "Bxe7+",
+          "Nxe7",
+          "Rxd7",
+          "Rxd7",
+          "Qxd7"
+        ],
+        "depth": 19
+      },
+      {
+        "score": "-814",
+        "san": [
+          "Qe4",
+          "Qxf6",
+          "Bxe7",
+          "Nxe7",
+          "Qxe7+",
+          "Qxe7",
+          "Rxe7+",
+          "Kxe7",
+          "Bf1",
+          "Rg6",
+          "a3"
+        ],
+        "depth": 19
+      }
+    ],
+    "candidateLine": {
+      "score": "+547",
+      "san": [
+        "Rxe7+",
+        "Kd8",
+        "Rxd7+",
+        "Kc8",
+        "Rd8+",
+        "Kxd8",
+        "Be2+",
+        "Nd4",
+        "Bxf3",
+        "Bxf3",
+        "g3"
+      ],
+      "depth": 17
+    },
+    "refined": {
+      "san": [
+        "Rxe7+",
+        "Kd8",
+        "Rxd7+",
+        "Kc8",
+        "Rd8+",
+        "Kxd8",
+        "Be2+",
+        "Nd4",
+        "Bxf3",
+        "Bxf3",
+        "g3"
+      ],
+      "score": "+550",
+      "depth": 21,
+      "nodes": 2500180
+    }
+  },
+  {
+    "id": "target-e7",
+    "chapter": 5,
+    "game": "Steinitz",
+    "headers": {
+      "Event": "Hastings",
+      "Site": "Hastings",
+      "Date": "1895.??.??",
+      "Round": "?",
+      "White": "Steinitz, William",
+      "Black": "Von Bardeleben, Curt",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C54"
+    },
+    "fen": "r1r1k3/pp1qn2p/5pp1/3p2N1/6Q1/8/PP3PPP/2R1R1K1 w - - 2 22",
+    "candidate": "Rxe7+",
+    "lines": [
+      {
+        "score": "+601",
+        "san": [
+          "Rxe7+",
+          "Qxe7",
+          "Rxc8+",
+          "Rxc8",
+          "Qxc8+",
+          "Qd8",
+          "Qe6+",
+          "Qe7",
+          "Qg8+",
+          "Qf8",
+          "Qxf8+"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "+149",
+        "san": [
+          "Nxh7",
+          "Rxc1",
+          "Nxf6+",
+          "Kf7",
+          "Rxc1",
+          "Qe6",
+          "Qxe6+",
+          "Kxe6",
+          "Nh7",
+          "a5",
+          "Re1+"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "+17",
+        "san": [
+          "Rxc8+",
+          "Rxc8",
+          "Nxh7",
+          "Qxg4",
+          "Nxf6+",
+          "Kf7",
+          "Nxg4",
+          "Rc2",
+          "Ne5+",
+          "Kf6",
+          "g3"
+        ],
+        "depth": 18
+      }
+    ],
+    "candidateLine": {
+      "score": "+628",
+      "san": [
+        "Rxe7+",
+        "Qxe7",
+        "Rxc8+",
+        "Rxc8",
+        "Qxc8+",
+        "Qd8",
+        "Qxd8+",
+        "Kxd8",
+        "Nxh7",
+        "Ke7",
+        "g4"
+      ],
+      "depth": 18
+    },
+    "refined": {
+      "san": [
+        "Rxe7+",
+        "Qxe7",
+        "Rxc8+",
+        "Rxc8",
+        "Qxc8+",
+        "Qd8",
+        "Qxd8+",
+        "Kxd8",
+        "Nxh7",
+        "Ke7",
+        "g4"
+      ],
+      "score": "+670",
+      "depth": 40,
+      "nodes": 2500203
+    }
+  },
+  {
+    "id": "gift-preparation",
+    "chapter": 6,
+    "game": "Lasker",
+    "headers": {
+      "Event": "Amsterdam",
+      "Site": "Amsterdam",
+      "Date": "1889.??.??",
+      "Round": "?",
+      "White": "Lasker, Emanuel",
+      "Black": "Bauer, Johann",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "A03"
+    },
+    "fen": "r4rk1/1b2bppp/ppq1pn2/2ppB3/5P2/1P1BP1N1/P1PPQ1PP/R4RK1 w - - 0 14",
+    "candidate": "Nh5",
+    "lines": [
+      {
+        "score": "+199",
+        "san": [
+          "Nh5",
+          "Rfc8",
+          "Nxf6+",
+          "Bxf6",
+          "Bxh7+",
+          "Kf8",
+          "d4",
+          "Ke7",
+          "Qg4",
+          "c4",
+          "Rf3"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "+38",
+        "san": [
+          "f5",
+          "g6"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "0",
+        "san": [
+          "Rae1",
+          "Nd7",
+          "Bxh7+",
+          "Kxh7",
+          "Qh5+",
+          "Kg8",
+          "Bxg7",
+          "Kxg7",
+          "Qg4+",
+          "Kh8",
+          "Qh3+"
+        ],
+        "depth": 16
+      }
+    ],
+    "candidateLine": {
+      "score": "+257",
+      "san": [
+        "Nh5",
+        "Rfc8"
+      ],
+      "depth": 20
+    },
+    "refined": {
+      "san": [
+        "Nh5",
+        "Rfc8",
+        "Nxf6+",
+        "Bxf6",
+        "Bxh7+",
+        "Kf8",
+        "d4",
+        "Ke7",
+        "Qg4",
+        "Rh8",
+        "Bd3"
+      ],
+      "score": "+216",
+      "depth": 23,
+      "nodes": 2500073
+    }
+  },
+  {
+    "id": "double-sacrifice",
+    "chapter": 6,
+    "game": "Lasker",
+    "headers": {
+      "Event": "Amsterdam",
+      "Site": "Amsterdam",
+      "Date": "1889.??.??",
+      "Round": "?",
+      "White": "Lasker, Emanuel",
+      "Black": "Bauer, Johann",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "A03"
+    },
+    "fen": "r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15",
+    "candidate": "Bxh7+",
+    "lines": [
+      {
+        "score": "+600",
+        "san": [
+          "Bxh7+",
+          "Kxh7",
+          "Qxh5+",
+          "Kg8",
+          "Bxg7",
+          "Kxg7",
+          "Qg4+",
+          "Kh7",
+          "Rf3",
+          "e5",
+          "Rh3+"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "+22",
+        "san": [
+          "Qxh5",
+          "f5",
+          "Rf3",
+          "Qe8",
+          "Qxe8",
+          "Raxe8",
+          "Be2",
+          "g6",
+          "h3",
+          "Kf7",
+          "g4"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-557",
+        "san": [
+          "g4",
+          "Nf6",
+          "Bxf6",
+          "Bxf6",
+          "Bxh7+",
+          "Kxh7",
+          "g5",
+          "Bxg5",
+          "fxg5",
+          "e5",
+          "Rf3"
+        ],
+        "depth": 16
+      }
+    ],
+    "candidateLine": {
+      "score": "+666",
+      "san": [
+        "Bxh7+",
+        "Kxh7",
+        "Qxh5+",
+        "Kg8",
+        "Bxg7",
+        "Kxg7",
+        "Qg4+",
+        "Kh7",
+        "Rf3",
+        "e5",
+        "Rh3+"
+      ],
+      "depth": 17
+    },
+    "refined": {
+      "san": [
+        "Bxh7+",
+        "Kxh7",
+        "Qxh5+",
+        "Kg8",
+        "Bxg7",
+        "Kxg7",
+        "Qg4+",
+        "Kh7",
+        "Rf3",
+        "e5",
+        "Rh3+",
+        "Qh6",
+        "Rxh6+",
+        "Kxh6",
+        "Qd7"
+      ],
+      "score": "+675",
+      "depth": 35,
+      "nodes": 2500171
+    }
+  },
+  {
+    "id": "rook-lift",
+    "chapter": 7,
+    "game": "Lasker",
+    "headers": {
+      "Event": "Amsterdam",
+      "Site": "Amsterdam",
+      "Date": "1889.??.??",
+      "Round": "?",
+      "White": "Lasker, Emanuel",
+      "Black": "Bauer, Johann",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "A03"
+    },
+    "fen": "r4r2/1b2bp1k/ppq1p3/2pp4/5PQ1/1P2P3/P1PP2PP/R4RK1 w - - 2 19",
+    "candidate": "Rf3",
+    "lines": [
+      {
+        "score": "+637",
+        "san": [
+          "Rf3",
+          "e5",
+          "Rh3+",
+          "Qh6",
+          "Rxh6+",
+          "Kxh6",
+          "Qd7",
+          "Rae8",
+          "Qxb7",
+          "exf4",
+          "Qxb6+"
+        ],
+        "depth": 13
+      },
+      {
+        "score": "+637",
+        "san": [
+          "Qh5+",
+          "Kg7",
+          "Qg4+",
+          "Kh7",
+          "Rf3",
+          "e5",
+          "Rh3+",
+          "Qh6",
+          "Rxh6+",
+          "Kxh6",
+          "Qd7"
+        ],
+        "depth": 13
+      },
+      {
+        "score": "+636",
+        "san": [
+          "Qh3+",
+          "Kg7",
+          "Qg4+",
+          "Kh7",
+          "Rf3",
+          "e5",
+          "Rh3+",
+          "Qh6",
+          "Qf5+",
+          "Kg7",
+          "Rxh6"
+        ],
+        "depth": 12
+      }
+    ],
+    "candidateLine": {
+      "score": "+636",
+      "san": [
+        "Rf3",
+        "e5",
+        "Rh3+",
+        "Qh6",
+        "Qf5+",
+        "Kg7",
+        "Rxh6",
+        "Kxh6",
+        "Qd7",
+        "Rae8",
+        "Qxb7"
+      ],
+      "depth": 18
+    },
+    "refined": {
+      "san": [
+        "Rf3",
+        "e5",
+        "Rh3+",
+        "Qh6",
+        "Qf5+",
+        "Kg7",
+        "Rxh6",
+        "Kxh6",
+        "Rf1",
+        "d4",
+        "Qd7"
+      ],
+      "score": "+726",
+      "depth": 30,
+      "nodes": 2500589
+    }
+  },
+  {
+    "id": "dragon-rook",
+    "chapter": 7,
+    "game": "Karpov",
+    "headers": {
+      "Event": "Candidats final",
+      "Site": "Moscow",
+      "Date": "1974.??.??",
+      "Round": "2",
+      "White": "Karpov, Anatoly",
+      "Black": "Kortschnoj, Viktor",
+      "Result": "1-0",
+      "WhiteElo": "2700",
+      "BlackElo": "2670",
+      "ECO": "B78"
+    },
+    "fen": "2r3k1/pp1bpp1p/3p1npQ/q7/2r1P1P1/2N2P2/PPP1N3/2KR3R w - - 1 19",
+    "candidate": "Rd3",
+    "lines": [
+      {
+        "score": "+99",
+        "san": [
+          "Rd5",
+          "Qd8",
+          "g5",
+          "Nh5",
+          "Nf4",
+          "Qf8",
+          "Nxh5",
+          "gxh5",
+          "Qxh5",
+          "Qg7",
+          "Rd2"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "+74",
+        "san": [
+          "Rd3",
+          "Qd8",
+          "g5",
+          "Nh5",
+          "Nf4",
+          "Qf8",
+          "Qxf8+",
+          "Kxf8",
+          "Nxh5",
+          "gxh5",
+          "Rxh5"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "+65",
+        "san": [
+          "a3"
+        ],
+        "depth": 16
+      }
+    ],
+    "candidateLine": {
+      "score": "+78",
+      "san": [
+        "Rd3",
+        "Qd8"
+      ],
+      "depth": 18
+    },
+    "refined": {
+      "san": [
+        "Rd3",
+        "Be6",
+        "g5",
+        "Nh5",
+        "Ng3",
+        "Qe5",
+        "Nxh5",
+        "gxh5",
+        "Rxh5",
+        "Qg7",
+        "Rd2"
+      ],
+      "score": "+100",
+      "depth": 24,
+      "nodes": 2500252
+    }
+  },
+  {
+    "id": "last-piece",
+    "chapter": 8,
+    "game": "Kasparov",
+    "headers": {
+      "Event": "Hoogovens",
+      "Site": "Wijk aan Zee",
+      "Date": "1999.01.20",
+      "Round": "4",
+      "White": "Kasparov, Gary",
+      "Black": "Topalov, Veselin",
+      "Result": "1-0",
+      "WhiteElo": "2812",
+      "BlackElo": "2700",
+      "ECO": "B07"
+    },
+    "fen": "b2r3r/k3qp1p/pn3np1/Nppp4/4PQ2/P1N2PPB/1PP4P/1K1R3R w - - 2 21",
+    "candidate": "Rhe1",
+    "lines": [
+      {
+        "score": "-32",
+        "san": [
+          "Rhe1",
+          "d4",
+          "Nd5",
+          "Nbxd5",
+          "exd5",
+          "Qd6",
+          "Rxd4",
+          "Kb6",
+          "b4",
+          "Qxf4",
+          "Rxf4"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-96",
+        "san": [
+          "Nb3",
+          "d4",
+          "Na2",
+          "Rhe8",
+          "Rhe1",
+          "h6",
+          "Qd2",
+          "g5",
+          "Qf2",
+          "g4",
+          "Bxg4"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-104",
+        "san": [
+          "Ka1",
+          "d4"
+        ],
+        "depth": 16
+      }
+    ],
+    "candidateLine": {
+      "score": "-28",
+      "san": [
+        "Rhe1",
+        "d4"
+      ],
+      "depth": 25
+    },
+    "refined": {
+      "san": [
+        "Rhe1",
+        "d4",
+        "Nd5",
+        "Nbxd5",
+        "exd5",
+        "Qd6",
+        "Rxd4",
+        "Kb6",
+        "b4",
+        "Qxf4",
+        "Rxf4"
+      ],
+      "score": "-28",
+      "depth": 29,
+      "nodes": 2500005
+    }
+  },
+  {
+    "id": "central-break",
+    "chapter": 8,
+    "game": "Karpov",
+    "headers": {
+      "Event": "Candidats final",
+      "Site": "Moscow",
+      "Date": "1974.??.??",
+      "Round": "2",
+      "White": "Karpov, Anatoly",
+      "Black": "Kortschnoj, Viktor",
+      "Result": "1-0",
+      "WhiteElo": "2700",
+      "BlackElo": "2670",
+      "ECO": "B78"
+    },
+    "fen": "4r1k1/pp2pp1p/2bp1npQ/q2N4/4PN2/5P2/PPP5/2K4R w - - 3 24",
+    "candidate": "e5",
+    "lines": [
+      {
+        "score": "+695",
+        "san": [
+          "e5",
+          "Bxd5",
+          "exf6",
+          "exf6",
+          "Qxh7+",
+          "Kf8",
+          "Qh8+",
+          "Ke7",
+          "Nxd5+",
+          "Qxd5",
+          "Re1+"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "+6",
+        "san": [
+          "Nxf6+",
+          "exf6",
+          "Nh5",
+          "Qg5+",
+          "Qxg5",
+          "fxg5",
+          "Nf6+",
+          "Kg7",
+          "Nxe8+",
+          "Bxe8",
+          "Kd2"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "-62",
+        "san": [
+          "a3",
+          "Bxd5",
+          "Nxd5",
+          "Qc5",
+          "Nxf6+",
+          "exf6",
+          "Qxh7+",
+          "Kf8",
+          "Qh2",
+          "Qe5",
+          "Qf2"
+        ],
+        "depth": 15
+      }
+    ],
+    "candidateLine": {
+      "score": "+732",
+      "san": [
+        "e5",
+        "Bxd5",
+        "exf6",
+        "exf6",
+        "Qxh7+",
+        "Kf8",
+        "Qh8+",
+        "Ke7",
+        "Nxd5+",
+        "Qxd5",
+        "Re1+"
+      ],
+      "depth": 33
+    },
+    "refined": {
+      "san": [
+        "e5",
+        "Bxd5",
+        "exf6",
+        "exf6",
+        "Qxh7+",
+        "Kf8",
+        "Qh8+",
+        "Ke7",
+        "Nxd5+",
+        "Qxd5",
+        "Re1+"
+      ],
+      "score": "+790",
+      "depth": 37,
+      "nodes": 2500456
+    }
+  },
+  {
+    "id": "dragon-blockade",
+    "chapter": 9,
+    "game": "Karpov",
+    "headers": {
+      "Event": "Candidats final",
+      "Site": "Moscow",
+      "Date": "1974.??.??",
+      "Round": "2",
+      "White": "Karpov, Anatoly",
+      "Black": "Kortschnoj, Viktor",
+      "Result": "1-0",
+      "WhiteElo": "2700",
+      "BlackElo": "2670",
+      "ECO": "B78"
+    },
+    "fen": "2r3k1/pp1bpp1p/3p1npQ/q5r1/4P3/2NR1P2/PPP1N3/2K4R w - - 0 21",
+    "candidate": "Rd5",
+    "lines": [
+      {
+        "score": "+484",
+        "san": [
+          "Rd5",
+          "Rxd5",
+          "Nxd5",
+          "Qc5",
+          "Nxe7+",
+          "Kh8",
+          "Nxc8",
+          "Qxc8",
+          "Qf4",
+          "Kg7",
+          "Qxd6"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "+40",
+        "san": [
+          "Nf4"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "0",
+        "san": [
+          "b4",
+          "Qa3+",
+          "Kd1",
+          "Re5",
+          "f4",
+          "Re6",
+          "f5",
+          "Re5",
+          "Rf3",
+          "Bb5",
+          "fxg6"
+        ],
+        "depth": 18
+      }
+    ],
+    "candidateLine": {
+      "score": "+519",
+      "san": [
+        "Rd5",
+        "Rxd5",
+        "Nxd5",
+        "Qc5",
+        "Nxe7+",
+        "Kh8",
+        "Nxc8",
+        "Qxc8",
+        "Rd1",
+        "Kg8",
+        "Rxd6"
+      ],
+      "depth": 18
+    },
+    "refined": {
+      "san": [
+        "Rd5",
+        "Rxd5",
+        "Nxd5",
+        "Qc5",
+        "Nxe7+",
+        "Kh8",
+        "Nxc8",
+        "Qxc8",
+        "Rd1",
+        "d5",
+        "exd5"
+      ],
+      "score": "+528",
+      "depth": 21,
+      "nodes": 2500154
+    }
+  },
+  {
+    "id": "counterplay-castle",
+    "chapter": 9,
+    "game": "Keres",
+    "headers": {
+      "Event": "World Championship 18th",
+      "Site": "NLD/URS",
+      "Date": "1948.??.??",
+      "Round": "18",
+      "White": "Keres, Paul",
+      "Black": "Reshevsky, Samuel Herman",
+      "Result": "0-1",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C81"
+    },
+    "fen": "r1q1k2r/2p2pp1/p1n1b2p/1pbpP3/7B/1PN2N2/1PP1QPPP/R2R2K1 b kq - 3 14",
+    "candidate": "g5",
+    "lines": [
+      {
+        "score": "-82",
+        "san": [
+          "g5",
+          "Nxd5"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-142",
+        "san": [
+          "Be7",
+          "Nxd5",
+          "Bxd5",
+          "Rxd5",
+          "Qe6",
+          "Rd2",
+          "Bxh4",
+          "Nxh4",
+          "O-O",
+          "f4",
+          "Rad8"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "-143",
+        "san": [
+          "O-O",
+          "Nxd5",
+          "Bxd5",
+          "Rxd5",
+          "Bb6",
+          "Qd2",
+          "Qe6",
+          "Rd1",
+          "Rae8",
+          "h3",
+          "Qf5"
+        ],
+        "depth": 15
+      }
+    ],
+    "candidateLine": {
+      "score": "-68",
+      "san": [
+        "g5",
+        "Nxd5"
+      ],
+      "depth": 19
+    },
+    "refined": {
+      "san": [
+        "g5",
+        "Nxd5",
+        "gxh4",
+        "Nf6+",
+        "Kf8",
+        "Qe4",
+        "Ne7",
+        "b4",
+        "Bf5",
+        "Qe1",
+        "Bb6"
+      ],
+      "score": "-90",
+      "depth": 23,
+      "nodes": 2500556
+    }
+  },
+  {
+    "id": "defend-marshall",
+    "chapter": 10,
+    "game": "Capablanca",
+    "headers": {
+      "Event": "New York",
+      "Site": "New York",
+      "Date": "1918.??.??",
+      "Round": "?",
+      "White": "Capablanca, Jose Raul",
+      "Black": "Marshall, Frank James",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C89"
+    },
+    "fen": "r1b2rk1/2p2ppp/p2b4/1p6/3P3q/1BP2Q1P/PP3nP1/RNB1R1K1 w - - 0 16",
+    "candidate": "Re2",
+    "lines": [
+      {
+        "score": "+137",
+        "san": [
+          "Qxf2",
+          "Bh2+"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "+123",
+        "san": [
+          "Re3",
+          "Nd3",
+          "Bd2",
+          "Bg4",
+          "hxg4",
+          "Qh2+",
+          "Kf1",
+          "Qh1+",
+          "Ke2",
+          "Nf4+",
+          "Kf2"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "+116",
+        "san": [
+          "Re2",
+          "Ng4",
+          "Qxa8",
+          "Qg3",
+          "hxg4",
+          "Qh2+",
+          "Kf2",
+          "Bxg4",
+          "Qe4",
+          "Bg3+",
+          "Ke3"
+        ],
+        "depth": 15
+      }
+    ],
+    "candidateLine": {
+      "score": "+121",
+      "san": [
+        "Re2",
+        "Bxh3"
+      ],
+      "depth": 18
+    },
+    "refined": {
+      "san": [
+        "Re2",
+        "Ng4",
+        "g3",
+        "Qxh3",
+        "Qxa8",
+        "Bxg3",
+        "Qg2",
+        "Bh2+",
+        "Kf1",
+        "Qh5",
+        "Nd2"
+      ],
+      "score": "+188",
+      "depth": 22,
+      "nodes": 2500473
+    }
+  },
+  {
+    "id": "decline-sacrifice",
+    "chapter": 10,
+    "game": "Kasparov",
+    "headers": {
+      "Event": "Hoogovens",
+      "Site": "Wijk aan Zee",
+      "Date": "1999.01.20",
+      "Round": "4",
+      "White": "Kasparov, Gary",
+      "Black": "Topalov, Veselin",
+      "Result": "1-0",
+      "WhiteElo": "2812",
+      "BlackElo": "2700",
+      "ECO": "B07"
+    },
+    "fen": "b2r3r/k4p1p/p2q1np1/NppP4/3R1Q2/P4PPB/1PP4P/1K2R3 b - - 0 24",
+    "candidate": "Kb6",
+    "lines": [
+      {
+        "score": "+21",
+        "san": [
+          "Kb6",
+          "b4",
+          "Qxf4",
+          "Rxf4",
+          "Nxd5",
+          "Rxf7",
+          "cxb4",
+          "axb4",
+          "Rhe8",
+          "Rxe8",
+          "Rxe8"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "0",
+        "san": [
+          "Rhe8",
+          "Rxe8",
+          "Nxe8",
+          "Qxf7+",
+          "Kb6",
+          "Nc6",
+          "Bxc6",
+          "dxc6",
+          "Qxd4",
+          "Qb7+",
+          "Ka5"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "-19",
+        "san": [
+          "Rhg8",
+          "c4",
+          "cxd4",
+          "Qxd4+",
+          "Kb8",
+          "c5",
+          "Qc7",
+          "Qxf6",
+          "Rxd5",
+          "b4",
+          "Qd8"
+        ],
+        "depth": 16
+      }
+    ],
+    "candidateLine": {
+      "score": "+21",
+      "san": [
+        "Kb6",
+        "b4"
+      ],
+      "depth": 24
+    },
+    "refined": {
+      "san": [
+        "Kb6",
+        "b4",
+        "Qxf4",
+        "Rxf4",
+        "Nxd5",
+        "Rxf7",
+        "cxb4",
+        "axb4",
+        "Nxb4",
+        "Nb3",
+        "Bd5"
+      ],
+      "score": "+29",
+      "depth": 29,
+      "nodes": 2500527
+    }
+  },
+  {
+    "id": "force-phase",
+    "chapter": 11,
+    "game": "Kasparov",
+    "headers": {
+      "Event": "Hoogovens",
+      "Site": "Wijk aan Zee",
+      "Date": "1999.01.20",
+      "Round": "4",
+      "White": "Kasparov, Gary",
+      "Black": "Topalov, Veselin",
+      "Result": "1-0",
+      "WhiteElo": "2812",
+      "BlackElo": "2700",
+      "ECO": "B07"
+    },
+    "fen": "b2r3r/k4p1p/p2q1np1/Np1P4/3p1Q2/P4PPB/1PP4P/1K2R3 w - - 0 25",
+    "candidate": "Re7+",
+    "lines": [
+      {
+        "score": "+77",
+        "san": [
+          "Re7+",
+          "Kb6",
+          "Qxd4+",
+          "Kxa5",
+          "b4+",
+          "Ka4",
+          "Qc3",
+          "Qxd5",
+          "Ra7",
+          "Bb7",
+          "Rxb7"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-309",
+        "san": [
+          "Qxd4+",
+          "Qb6"
+        ],
+        "depth": 16
+      },
+      {
+        "score": "-663",
+        "san": [
+          "c4",
+          "Qxf4",
+          "Re7+",
+          "Kb6",
+          "c5+",
+          "Kxa5",
+          "gxf4",
+          "b4",
+          "Bf1",
+          "bxa3",
+          "Ka2"
+        ],
+        "depth": 15
+      }
+    ],
+    "candidateLine": {
+      "score": "+62",
+      "san": [
+        "Re7+",
+        "Kb6"
+      ],
+      "depth": 23
+    },
+    "refined": {
+      "san": [
+        "Re7+",
+        "Kb8",
+        "Qxd4",
+        "Nd7",
+        "Rxd7",
+        "Rxd7",
+        "Bxd7",
+        "Rg8",
+        "Bc6",
+        "Qc7",
+        "Qb4"
+      ],
+      "score": "+391",
+      "depth": 22,
+      "nodes": 2500615
+    }
+  },
+  {
+    "id": "quiet-completion",
+    "chapter": 11,
+    "game": "Kasparov",
+    "headers": {
+      "Event": "Hoogovens",
+      "Site": "Wijk aan Zee",
+      "Date": "1999.01.20",
+      "Round": "4",
+      "White": "Kasparov, Gary",
+      "Black": "Topalov, Veselin",
+      "Result": "1-0",
+      "WhiteElo": "2812",
+      "BlackElo": "2700",
+      "ECO": "B07"
+    },
+    "fen": "3r3r/1R3p1p/6p1/1p6/2q5/5PPB/1Q5P/1K1k4 w - - 4 36",
+    "candidate": "Bf1",
+    "lines": [
+      {
+        "score": "+3",
+        "san": [
+          "Bf1",
+          "Rd2",
+          "Bxc4",
+          "Rxb2+",
+          "Kxb2",
+          "bxc4",
+          "Rxf7",
+          "Kd2",
+          "Rd7+",
+          "Ke3",
+          "f4"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "-903",
+        "san": [
+          "Rd7+",
+          "Rxd7",
+          "Bf1",
+          "Rd2",
+          "Bxc4",
+          "Rxb2+",
+          "Kxb2",
+          "bxc4",
+          "Kc3",
+          "Rc8",
+          "f4"
+        ],
+        "depth": 15
+      },
+      {
+        "score": "-962",
+        "san": [
+          "Qa3",
+          "Qc2+",
+          "Ka1",
+          "Rd2",
+          "f4",
+          "Qc1+",
+          "Qxc1+",
+          "Kxc1",
+          "Rc7+",
+          "Rc2",
+          "Rxc2+"
+        ],
+        "depth": 15
+      }
+    ],
+    "candidateLine": {
+      "score": "+398",
+      "san": [
+        "Bf1",
+        "Rd2"
+      ],
+      "depth": 19
+    },
+    "refined": {
+      "san": [
+        "Bf1",
+        "Rd2",
+        "Rd7",
+        "Rxd7",
+        "Bxc4",
+        "bxc4",
+        "Qxh8",
+        "Rd3",
+        "Qa8",
+        "Kd2",
+        "Qa2+"
+      ],
+      "score": "+416",
+      "depth": 21,
+      "nodes": 2500492
+    }
+  },
+  {
+    "id": "queen-sacrifice",
+    "chapter": 12,
+    "game": "Fischer",
+    "headers": {
+      "Event": "New York Rosenwald",
+      "Site": "New York",
+      "Date": "1956.??.??",
+      "Round": "?",
+      "White": "Byrne, Donald",
+      "Black": "Fischer, Robert James",
+      "Result": "0-1",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "D97"
+    },
+    "fen": "r3r1k1/pp3pbp/1qp3p1/2B5/2BP2b1/Q1n2N2/P4PPP/3R1K1R b - - 3 17",
+    "candidate": "Be6",
+    "lines": [
+      {
+        "score": "+308",
+        "san": [
+          "Be6",
+          "Qxc3",
+          "Qxc5",
+          "dxc5",
+          "Bxc3",
+          "Bxe6",
+          "Rxe6",
+          "g3",
+          "Rae8",
+          "Rb1",
+          "R8e7"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "-133",
+        "san": [
+          "Nb5",
+          "Bxf7+",
+          "Kh8",
+          "Bxb6",
+          "Nxa3",
+          "Bc5",
+          "Rf8",
+          "Bxf8",
+          "Rxf8",
+          "Rd3",
+          "Nb5"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "-145",
+        "san": [
+          "Nb1",
+          "Qc1",
+          "Qd8",
+          "Qxb1",
+          "Bxf3",
+          "gxf3",
+          "b6",
+          "Bb4",
+          "b5",
+          "Be2",
+          "Qh4"
+        ],
+        "depth": 18
+      }
+    ],
+    "candidateLine": {
+      "score": "+278",
+      "san": [
+        "Be6",
+        "Qxc3",
+        "Qxc5",
+        "dxc5",
+        "Bxc3",
+        "Bxe6",
+        "Rxe6",
+        "g3",
+        "Rae8",
+        "Rb1",
+        "R8e7"
+      ],
+      "depth": 21
+    },
+    "refined": {
+      "san": [
+        "Be6",
+        "Qxc3",
+        "Qxc5",
+        "dxc5",
+        "Bxc3",
+        "Bxe6",
+        "Rxe6",
+        "g3",
+        "Re7",
+        "a3",
+        "b5"
+      ],
+      "score": "+299",
+      "depth": 22,
+      "nodes": 2500322
+    }
+  },
+  {
+    "id": "quiet-threat",
+    "chapter": 5,
+    "game": "Kasparov",
+    "headers": {
+      "Event": "Hoogovens",
+      "Site": "Wijk aan Zee",
+      "Date": "1999.01.20",
+      "Round": "4",
+      "White": "Kasparov, Gary",
+      "Black": "Topalov, Veselin",
+      "Result": "1-0",
+      "WhiteElo": "2812",
+      "BlackElo": "2700",
+      "ECO": "B07"
+    },
+    "fen": "b2r3r/4Rp1p/p4np1/1p1q4/kP6/P1Q2PPB/2P4P/1K6 w - - 0 29",
+    "candidate": "Ra7",
+    "lines": [
+      {
+        "score": "+88",
+        "san": [
+          "Ra7",
+          "Bb7"
+        ],
+        "depth": 18
+      },
+      {
+        "score": "0",
+        "san": [
+          "Qc7",
+          "Qd1+",
+          "Kb2",
+          "Qd4+",
+          "Kb1"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "-94",
+        "san": [
+          "Re1",
+          "Qc4",
+          "Qxf6",
+          "Qc6",
+          "Qe5",
+          "Bb7",
+          "Re4",
+          "Rd1+",
+          "Kb2",
+          "f5",
+          "Rf4"
+        ],
+        "depth": 17
+      }
+    ],
+    "candidateLine": {
+      "score": "+118",
+      "san": [
+        "Ra7",
+        "Bb7"
+      ],
+      "depth": 23
+    },
+    "refined": {
+      "san": [
+        "Ra7",
+        "Bb7",
+        "Rxb7",
+        "Qc4",
+        "Qxf6",
+        "Rd1+",
+        "Kb2",
+        "Ra8",
+        "Qb6",
+        "Qd4+",
+        "Qxd4"
+      ],
+      "score": "+96",
+      "depth": 27,
+      "nodes": 2500622
+    }
+  },
+  {
+    "id": "escape-route",
+    "chapter": 10,
+    "game": "Capablanca",
+    "headers": {
+      "Event": "New York",
+      "Site": "New York",
+      "Date": "1918.??.??",
+      "Round": "?",
+      "White": "Capablanca, Jose Raul",
+      "Black": "Marshall, Frank James",
+      "Result": "1-0",
+      "WhiteElo": "",
+      "BlackElo": "",
+      "ECO": "C89"
+    },
+    "fen": "r4rk1/2p2ppp/p7/1p6/3P2P1/1BP2Q2/PP2KbP1/RNB4q w - - 0 21",
+    "candidate": "Bd2",
+    "lines": [
+      {
+        "score": "+268",
+        "san": [
+          "Bd2",
+          "Bh4"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "+228",
+        "san": [
+          "Kd2",
+          "Qe1+"
+        ],
+        "depth": 17
+      },
+      {
+        "score": "+147",
+        "san": [
+          "Nd2",
+          "Qe1+",
+          "Kd3",
+          "c5",
+          "dxc5",
+          "Rae8",
+          "Qd1",
+          "Bxc5",
+          "Qxe1",
+          "Rxe1",
+          "Nf3"
+        ],
+        "depth": 17
+      }
+    ],
+    "candidateLine": {
+      "score": "+279",
+      "san": [
+        "Bd2",
+        "Bh4",
+        "Kd3",
+        "c5",
+        "Bd5",
+        "Rad8",
+        "g3",
+        "Qxf3+",
+        "Bxf3",
+        "Bxg3",
+        "Be3"
+      ],
+      "depth": 19
+    },
+    "refined": {
+      "san": [
+        "Bd2",
+        "Bh4",
+        "Kd3",
+        "Rad8",
+        "Kc2",
+        "Qg1",
+        "g3",
+        "Qxg3",
+        "Qxg3",
+        "Bxg3",
+        "Na3"
+      ],
+      "score": "+302",
+      "depth": 21,
+      "nodes": 2500012
+    }
+  }
+]

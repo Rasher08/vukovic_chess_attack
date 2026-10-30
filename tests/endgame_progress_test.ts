@@ -1,0 +1,101 @@
+import assert from 'node:assert/strict';
+import { auditEndgameAttempt, type EndgameAudit } from '../src/lib/endgameTraining';
+import { loadEndgameProgress, saveEndgameAttempt, getEndgameSolvedTimestamps, ENDGAME_PROGRESS_KEY, ENDGAME_PROGRESS_EVENT, type EndgameAttempt } from '../src/lib/endgameProgress';
+import { Chess } from 'chess.js';
+import type { EndgameTablebaseLike } from '../src/lib/endgameTablebase';
+
+const fen = '7k/8/5KQ1/8/8/8/8/8 w - - 0 1';
+const t0 = Date.UTC(2026, 9, 29, 18);
+const DAY = 86_400_000;
+const values = new Map<string, string>(); let quota = false; const events: string[] = [];
+const original = Object.getOwnPropertyDescriptor(globalThis, 'window');
+Object.defineProperty(globalThis, 'window', { configurable: true, value: {
+  localStorage: { getItem(key: string) { return values.get(key) ?? null; }, setItem(key: string, value: string) { if (quota) throw new Error('quota'); values.set(key, value); } },
+  dispatchEvent(event: Event) { events.push(event.type); return true; },
+} });
+const winning: EndgameTablebaseLike = { async probe(fen) { return { fen, category: 'win', dtz: 1, moves: new Chess(fen).moves({ verbose: true }).map(move => ({ uci: move.from + move.to + (move.promotion || ''), san: move.san, category: 'loss', dtz: -1 })) }; } };
+async function run() {
+  const audit = await auditEndgameAttempt({ initialFen: fen, playerColor: 'w', goal: 'win' }, ['g6g7'], { async analyze() { throw new Error('not needed'); } }, { tablebase: winning });
+  assert.equal(audit.outcome, 'passed');
+  const attempt = (id: string, at = t0, lessonId = 'technical-queen'): EndgameAttempt => ({ id, lessonId, initialFen: fen, moves: ['g6g7'], plan: 'Ограничить короля, затем поставить мат.', planLocked: true, phase: 'completed', assisted: false, revealed: false, createdAt: at, updatedAt: at, audit });
+  values.set('vukovic-course-progress:v1', 'keep attack course');
+  values.set('nonchalant-game-reviews:v1', 'keep game review');
+  assert.deepEqual(loadEndgameProgress(), { version: 1, lessons: {}, solvedAt: [] });
+  const active = { ...attempt('one'), phase: 'active' as const, moves: [], audit: undefined, planLocked: false };
+  assert.equal(saveEndgameAttempt(active).saved, true);
+  assert(values.get(ENDGAME_PROGRESS_KEY)!.startsWith('lz1:'));
+  assert.deepEqual(loadEndgameProgress().lessons['technical-queen'].activeAttempt, JSON.parse(JSON.stringify(active)));
+  const detached = loadEndgameProgress(); detached.lessons['technical-queen'].activeAttempt!.plan = 'changed';
+  assert.equal(loadEndgameProgress().lessons['technical-queen'].activeAttempt!.plan, active.plan);
+  assert.equal(saveEndgameAttempt(attempt('one')).saved, true);
+  let progress = loadEndgameProgress();
+  assert.equal(progress.lessons['technical-queen'].activeAttempt, undefined);
+  assert.equal(progress.lessons['technical-queen'].history.length, 1);
+  assert.equal(progress.lessons['technical-queen'].nextReviewAt, t0 + DAY);
+  assert.deepEqual(getEndgameSolvedTimestamps(progress), [t0]);
+  const timestamps = getEndgameSolvedTimestamps(progress); timestamps.push(1);
+  assert.deepEqual(getEndgameSolvedTimestamps(progress), [t0]);
+  assert.equal(saveEndgameAttempt({ ...attempt('one'), updatedAt: t0 + 2 * DAY }).saved, true);
+  progress = loadEndgameProgress();
+  assert.deepEqual(progress.solvedAt, [t0], 'Resaving the same passed completion cannot create a new solved day');
+  assert.equal(progress.lessons['technical-queen'].history[0].updatedAt, t0, 'Completion time is immutable');
+  assert.equal(progress.lessons['technical-queen'].nextReviewAt, t0 + DAY);
+  assert.equal(saveEndgameAttempt(attempt('early', t0 + 23 * 3_600_000)).saved, true);
+  progress = loadEndgameProgress();
+  assert.equal(progress.lessons['technical-queen'].successfulRepeats, 0);
+  assert.equal(progress.lessons['technical-queen'].nextReviewAt, t0 + 47 * 3_600_000, 'An early success restarts spacing from the latest exposure');
+  assert.equal(saveEndgameAttempt(attempt('still-early', t0 + DAY)).saved, true);
+  progress = loadEndgameProgress();
+  assert.equal(progress.lessons['technical-queen'].successfulRepeats, 0, 'A 23h+1h trick is not a delayed repeat');
+  assert.equal(progress.lessons['technical-queen'].nextReviewAt, t0 + 2 * DAY);
+  for (let count = 1; count <= 4; count += 1) {
+    const due = loadEndgameProgress().lessons['technical-queen'].nextReviewAt!;
+    assert.equal(saveEndgameAttempt(attempt(`repeat-${count}`, due)).saved, true);
+    assert.equal(loadEndgameProgress().lessons['technical-queen'].successfulRepeats, count);
+  }
+  progress = loadEndgameProgress();
+  assert.equal(progress.lessons['technical-queen'].nextReviewAt, null);
+  assert(progress.lessons['technical-queen'].masteredAt !== null);
+  assert.equal(progress.lessons['technical-queen'].history.length, 4, 'Long-term days survive bounded detailed history');
+  const solvedCount = progress.solvedAt.length;
+  const helpedAt = progress.lessons['technical-queen'].lastPassedAt! + 2 * DAY;
+  assert.equal(saveEndgameAttempt({ ...attempt('assisted', helpedAt), assisted: true }).saved, true);
+  progress = loadEndgameProgress();
+  assert.equal(progress.solvedAt.length, solvedCount, 'Assisted successes are not solved days');
+  assert.equal(progress.lessons['technical-queen'].successfulRepeats, 0);
+  assert.equal(progress.lessons['technical-queen'].masteredAt, null);
+  assert.equal(progress.lessons['technical-queen'].nextReviewAt, helpedAt + DAY);
+  assert.equal(saveEndgameAttempt({ ...attempt('shown', helpedAt + DAY), revealed: true }).saved, true);
+  assert.equal(loadEndgameProgress().solvedAt.length, solvedCount);
+  assert.equal(saveEndgameAttempt({ ...attempt('assisted', helpedAt), assisted: false }).saved, false, 'Help cannot be cleared within the same attempt');
+
+  const partialAudit: EndgameAudit = { ...audit, outcome: 'incomplete', terminalResult: null, moves: [], playedOwnMoves: 0, exactMoves: 0 };
+  const partial = { ...attempt('continue', helpedAt + 3 * DAY, 'continue-lesson'), moves: [], audit: partialAudit };
+  assert.equal(saveEndgameAttempt(partial).saved, true);
+  assert.equal(saveEndgameAttempt({ ...partial, phase: 'active', audit: undefined, updatedAt: partial.updatedAt + 1 }).saved, true);
+  assert.equal(saveEndgameAttempt({ ...attempt('continue', partial.createdAt, 'continue-lesson'), updatedAt: partial.updatedAt + 2 }).saved, true);
+  assert.equal(loadEndgameProgress().lessons['continue-lesson'].history[0].audit!.outcome, 'passed', 'A hidden partial review can later become a full win');
+  const raw = values.get(ENDGAME_PROGRESS_KEY);
+  quota = true;
+  assert.equal(saveEndgameAttempt(attempt('quota')).saved, false);
+  assert.equal(values.get(ENDGAME_PROGRESS_KEY), raw);
+  quota = false;
+  assert.equal(saveEndgameAttempt({ ...attempt('illegal'), moves: ['g6g8'] }).saved, false);
+  assert.equal(saveEndgameAttempt({ ...attempt('unlocked'), planLocked: false }).saved, false);
+  assert.equal(saveEndgameAttempt({ ...attempt('duplicate-row'), audit: { ...audit, playedOwnMoves: 2, moves: [audit.moves[0], audit.moves[0]] } }).saved, false);
+  assert.equal(values.get(ENDGAME_PROGRESS_KEY), raw);
+  const staleA = { ...active, id: 'stale-a', lessonId: 'stale-lesson', createdAt: t0, updatedAt: t0 };
+  const staleB = { ...staleA, id: 'stale-b', createdAt: t0 + 10, updatedAt: t0 + 20 };
+  assert.equal(saveEndgameAttempt(staleA).saved, true); assert.equal(saveEndgameAttempt(staleB).saved, true);
+  assert.equal(saveEndgameAttempt({ ...staleA, updatedAt: t0 + 30 }).saved, false, 'An old tab must not overwrite a newer attempt');
+  assert.equal(saveEndgameAttempt({ ...staleB, updatedAt: t0 + 19 }).saved, false, 'An older snapshot of the same attempt must not overwrite progress');
+  assert.equal(loadEndgameProgress().lessons['stale-lesson'].activeAttempt!.id, 'stale-b');
+  values.set(ENDGAME_PROGRESS_KEY, '{"version":99,"lessons":{},"solvedAt":[]}');
+  assert.equal(saveEndgameAttempt(attempt('future')).saved, false);
+  assert.equal(values.get(ENDGAME_PROGRESS_KEY), '{"version":99,"lessons":{},"solvedAt":[]}');
+  assert.equal(values.get('vukovic-course-progress:v1'), 'keep attack course');
+  assert.equal(values.get('nonchalant-game-reviews:v1'), 'keep game review');
+  assert(events.includes(ENDGAME_PROGRESS_EVENT));
+  console.log('Endgame progress: active restore, legal detached snapshots, immutable passed dates, honest spaced repeats, assisted/revealed isolation, partial continuation, bounded history, quota/future protection and independent streak days passed.');
+}
+run().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => { if (original) Object.defineProperty(globalThis, 'window', original); else Reflect.deleteProperty(globalThis, 'window'); });

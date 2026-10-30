@@ -1,0 +1,14 @@
+{
+  "package": "stockfish",
+  "version": "19.0.1",
+  "flavor": "lite-single",
+  "sourceCommit": "0d5dd7944f88c817c07a26bc4fb1905d5f9c46d6",
+  "sourceUrl": "https://github.com/nmrugg/stockfish.js/tree/0d5dd7944f88c817c07a26bc4fb1905d5f9c46d6",
+  "sourceArchive": "https://github.com/nmrugg/stockfish.js/archive/0d5dd7944f88c817c07a26bc4fb1905d5f9c46d6.tar.gz",
+  "license": "GPL-3.0",
+  "runtimeBytes": 1874201,
+  "sha256": {
+    "stockfish-19-lite-single.js": "ccb130d7ff29408531c47d859a49f91d59d4f482d05a53eb1a3231a4f624c91a",
+    "stockfish-19-lite-single.wasm": "ee4f115bdb2d32cadf96cada104a05b5ec257d7ad6f57582190b49bc71f096de"
+  }
+}

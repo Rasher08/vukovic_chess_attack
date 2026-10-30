@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "sourcePage": "https://csslab.cs.toronto.edu/datasets/",
+  "sourceArchive": "https://csslab.cs.toronto.edu/data/chess/kdd/maia-chess-testing-set.csv.bz2",
+  "sourceBytes": 209395633,
+  "sourceLastModified": "2020-10-21T20:49:00Z",
+  "underlyingGames": "Lichess rated standard games, December 2019",
+  "sampling": {
+    "method": "20 evenly spaced 2MB HTTP byte ranges; bzip2recover complete blocks; complete games only",
+    "compressedBytes": 40000000,
+    "ranges": [
+      {
+        "index": 0,
+        "start": 0,
+        "end": 1999999,
+        "bytes": 2000000,
+        "sha256": "43226738c228517bb57d118750dacc79c7e43535d17eb741497c637f1cf745c8"
+      },
+      {
+        "index": 1,
+        "start": 10915560,
+        "end": 12915559,
+        "bytes": 2000000,
+        "sha256": "5538327c7358854b33b83c5564d7e4b0f838d03535fc6bb4b8310c5ad7fe0f1a"
+      },
+      {
+        "index": 2,
+        "start": 21831119,
+        "end": 23831118,
+        "bytes": 2000000,
+        "sha256": "404f613b7be14ccf97197d96d473cde8c54fc0143d52bc01c727297f6873949b"
+      },
+      {
+        "index": 3,
+        "start": 32746679,
+        "end": 34746678,
+        "bytes": 2000000,
+        "sha256": "bf5cbaad1ce330a68266b21872dcb64ed142d631c6d8fda286e5deee81c16422"
+      },
+      {
+        "index": 4,
+        "start": 43662239,
+        "end": 45662238,
+        "bytes": 2000000,
+        "sha256": "81715298bc52cd9dab21ecfc0aa47812fb08a1a9b307873d3ac8f5ab9910e680"
+      },
+      {
+        "index": 5,
+        "start": 54577798,
+        "end": 56577797,
+        "bytes": 2000000,
+        "sha256": "34142bab22bc0962b4162c484b27f0f4ebfe0d6369f37e96c1c51cdb7213ed64"
+      },
+      {
+        "index": 6,
+        "start": 65493358,
+        "end": 67493357,
+        "bytes": 2000000,
+        "sha256": "0863a76953015dfe1d18ab0a262fb4f31f4ad8c15f323214cb966bdea3214c85"
+      },
+      {
+        "index": 7,
+        "start": 76408917,
+        "end": 78408916,
+        "bytes": 2000000,
+        "sha256": "6edad9b5cf86ac25112a44df16c32add4819864bf8268fb8faee90bf1e2e064e"
+      },
+      {
+        "index": 8,
+        "start": 87324477,
+        "end": 89324476,
+        "bytes": 2000000,
+        "sha256": "b59a630614b78ece684e2eccffec477a23651dfb930c7358563a0c4d708e7b3a"
+      },
+      {
+        "index": 9,
+        "start": 98240037,
+        "end": 100240036,
+        "bytes": 2000000,
+        "sha256": "909ff381f4221998b142e796268a09d4098f01af83618e7e1104d7aba718401c"
+      },
+      {
+        "index": 10,
+        "start": 109155596,
+        "end": 111155595,
+        "bytes": 2000000,
+        "sha256": "840c9fc78366d21bd6e725e7f684b6ee6e92caf43fb591b947be9140cdd30f11"
+      },
+      {
+        "index": 11,
+        "start": 120071156,
+        "end": 122071155,
+        "bytes": 2000000,
+        "sha256": "49cecddfa07315f151b0cbfec960f3eff5774dbbda766b284d665cf92e6be97d"
+      },
+      {
+        "index": 12,
+        "start": 130986716,
+        "end": 132986715,
+        "bytes": 2000000,
+        "sha256": "62edfc186c8fd428e33d034f015da2adce1ac64ce4690acbd84b68ba5ec53190"
+      },
+      {
+        "index": 13,
+        "start": 141902275,
+        "end": 143902274,
+        "bytes": 2000000,
+        "sha256": "8a9656a7f7503a42ea582b801955d33f918eda3ee2f40635d4b0a7477944666e"
+      },
+      {
+        "index": 14,
+        "start": 152817835,
+        "end": 154817834,
+        "bytes": 2000000,
+        "sha256": "9c549a87d194765363bdf075efcc2b5fb25a2718ebd23cf4ef10c22af1ab2ce0"
+      },
+      {
+        "index": 15,
+        "start": 163733394,
+        "end": 165733393,
+        "bytes": 2000000,
+        "sha256": "b5f7a15070d9cc40f5826f57fe2664486de1b3fef31322d100737aadbb7f27a2"
+      },
+      {
+        "index": 16,
+        "start": 174648954,
+        "end": 176648953,
+        "bytes": 2000000,
+        "sha256": "8e74bfbaf80d48be5e035253db26fd2e7c52c78b6718bec5f1e61df180259765"
+      },
+      {
+        "index": 17,
+        "start": 185564514,
+        "end": 187564513,
+        "bytes": 2000000,
+        "sha256": "c833e99136ba3adc9b4700f30a81b31f1fb27b8964508f347c65bb8677d98b47"
+      },
+      {
+        "index": 18,
+        "start": 196480073,
+        "end": 198480072,
+        "bytes": 2000000,
+        "sha256": "5eb488728f745aa3b0efdca9831856b64068e75e25ec511f2d12140797a51ee3"
+      },
+      {
+        "index": 19,
+        "start": 207395633,
+        "end": 209395632,
+        "bytes": 2000000,
+        "sha256": "512eceafc74c791dd08112266313bfd6865edd2b85aa135010e6ae2ec26bf994"
+      }
+    ]
+  },
+  "openingSourceCommit": "a6189a30dc273ccb21fc2536a9a2fefd5592a67a",
+  "featureDefinition": "Mean max(0, logisticWP(beforeCP*side)-logisticWP(afterCP*side)), logisticWP(cp)=100/(1+exp(-0.00368208*cp)); finite consecutive White-POV pawn evaluations converted to cp; abs(beforeCP)<=400; exclude exact pinned book transitions and <=1 legal move; >=12 eligible decisions per side.",
+  "filters": "Complete normally terminated Blitz/Rapid/Classical; initial clock>=180s; >=40 plies; target Elo1000..2599; standard initial game rows.",
+  "gameSides": 1827,
+  "games": 952,
+  "ratingBands": {
+    "1000": 78,
+    "1100": 80,
+    "1200": 114,
+    "1300": 142,
+    "1400": 142,
+    "1500": 114,
+    "1600": 113,
+    "1700": 112,
+    "1800": 108,
+    "1900": 179,
+    "2000": 95,
+    "2100": 73,
+    "2200": 105,
+    "2300": 130,
+    "2400": 71,
+    "2500": 171
+  },
+  "processingCounts": {
+    "incomplete_game": 39,
+    "ineligible_game": 11467,
+    "complete_eligible_games": 18163,
+    "book": 97946,
+    "missing_or_mate_eval": 1178273,
+    "finite_cp_loss_crosschecks": 59183,
+    "eligible_decisions": 42675,
+    "decided_position": 16508,
+    "forced": 14208,
+    "bad_metadata": 7
+  },
+  "sampleSha256": "c9d2d4e2fcb223bfe938497d3e024b9d613af3c70b160a9d40e5183311e0132b",
+  "licenseNote": "Lichess originals are CC0 (https://database.lichess.org/). CSSLab transformed dataset page gives no separate data license; Maia software is GPL3, not assumed to cover this download. Raw downloaded corpus is not redistributed; only numerical per-game-side aggregates and fitted statistics are retained.",
+  "limitations": [
+    "Byte-range convenience sample of rating-sorted selected analyzed games; not a random sample of all players.",
+    "Targets are Lichess Blitz/Rapid/Classical ratings, not Chess.com or FIDE.",
+    "Consecutive archived Stockfish evaluations differ from the application same-root forced-move analysis and have missing/mate parsing artifacts; nonfinite rows are excluded.",
+    "Single-game quality is noisy; numeric prediction is experimental, not an exact player rating."
+  ]
+}

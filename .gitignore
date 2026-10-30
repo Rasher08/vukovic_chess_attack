@@ -1,0 +1,14 @@
+node_modules/
+.next/
+.next-qa/
+.next-preview/
+.next-production/
+.artifacts/
+*.tsbuildinfo
+__pycache__/
+*.pyc
+.env*
+!.env.example
+.DS_Store
+.vercel/
+hud/release/

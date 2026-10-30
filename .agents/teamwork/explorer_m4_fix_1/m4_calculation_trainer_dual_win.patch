@@ -1,0 +1,212 @@
+diff --git a/src/components/trainer/CalculationTrainer.tsx bb/src/components/trainer/CalculationTrainer.tsx
+index 8bf352c..4fdf445 100644
+--- a/src/components/trainer/CalculationTrainer.tsx
++++ bb/src/components/trainer/CalculationTrainer.tsx
+@@ -91,7 +91,7 @@ export function getCalculationStepsForStudy(study: VukovicStudy): CalculationSte
+         stepIndex: 1,
+         moveNumber: 13,
+         fenBefore: 'r1bqr3/pp1n1ppk/3bp3/8/3p4/2P2N2/PP3PPP/R1BQR1K1 w - - 0 13',
+-        expectedFenAfter: 'r1bqr3/pp1n1ppk/3bp1N1/8/3p4/2P5/PP3PPP/R1BQR1K1 b - - 1 13',
++        expectedFenAfter: 'r1bqr3/pp1n1ppk/3bp3/6N1/3p4/2P5/PP3PPP/R1BQR1K1 b - - 1 13',
+         bestMoveSan: 'Ng5+',
+         bestMoveUci: 'f3g5',
+         bestMoveExplanation: 'Конь вторгается на g5 с шахом, подключая атакующие резервы.',
+@@ -169,6 +169,7 @@ export function getCalculationStepsForStudy(study: VukovicStudy): CalculationSte
+   let currentFen = study.initialFen;
+   let currentNode = study.rootNode;
+   let stepIndex = 0;
++  let currentWhiteSiblings = [study.rootNode];
+ 
+   // Извлекаем цепочку ходов белых и ответов черных по главной линии
+   while (currentNode) {
+@@ -182,6 +183,7 @@ export function getCalculationStepsForStudy(study: VukovicStudy): CalculationSte
+     // Ищем упорный ответ черных (первый дочерний узел)
+     let opponentResponse: CalculationStepSpec['opponentResponse'] = undefined;
+     let nextWhiteNode: typeof study.rootNode | null = null;
++    let nextWhiteSiblings: typeof study.rootNode[] = [];
+ 
+     if (currentNode.children && currentNode.children.length > 0) {
+       const blackNode = currentNode.children[0];
+@@ -194,30 +196,85 @@ export function getCalculationStepsForStudy(study: VukovicStudy): CalculationSte
+ 
+       if (blackNode.children && blackNode.children.length > 0) {
+         nextWhiteNode = blackNode.children[0];
++        nextWhiteSiblings = blackNode.children;
+         currentFen = blackNode.fen;
+       }
+     }
+ 
+-    // Извлекаем возможные опровержения ошибок из дочерних узлов дерева
++    // Извлекаем возможные ошибки и альтернативные ходы белых из ветвлений текущего полухода белых
+     const blunders: CalculationStepSpec['blunders'] = [];
+-    if (currentNode.children) {
+-      for (const child of currentNode.children) {
+-        if (child.isBlunderRefutation || (child.nag && child.nag.includes('?'))) {
++    const alternativeMoves: NonNullable<CalculationStepSpec['alternativeMoves']> = [];
++
++    if (currentWhiteSiblings && currentWhiteSiblings.length > 1) {
++      for (let i = 1; i < currentWhiteSiblings.length; i++) {
++        const sibling = currentWhiteSiblings[i];
++        if (sibling.isBlunderRefutation || (sibling.nag && sibling.nag.includes('?'))) {
+           blunders.push({
+-            san: child.san,
+-            uci: child.uci,
+-            refutationSan: child.children?.[0]?.san || 'Bxg5',
+-            refutationUci: child.children?.[0]?.uci || 'c8g5',
+-            refutationFen: child.children?.[0]?.fen || currentFen,
++            san: sibling.san,
++            uci: sibling.uci,
++            refutationSan: sibling.children?.[0]?.san || '??',
++            refutationUci: sibling.children?.[0]?.uci || '',
++            refutationFen: sibling.children?.[0]?.fen || fenBefore,
+             explanation:
+-              child.blunderExplanation ||
+-              child.comment ||
+-              `Ошибка! Ход ${child.san} выпускает решающий перевес по концепции Вуковича.`,
++              sibling.blunderExplanation ||
++              sibling.comment ||
++              `Ошибка! Ход ${sibling.san} выпускает решающий перевес по концепции Вуковича.`,
++          });
++        } else {
++          alternativeMoves.push({
++            san: sibling.san,
++            uci: sibling.uci,
++            explanation: sibling.comment || 'Допустимый альтернативный ход атаки.',
+           });
+         }
+       }
+     }
+ 
++    // Поддержка дуальных победных матов для известных партий Вуковича
++    if (study.id === 'ed-lasker-thomas-1912' && currentNode.san.includes('Kd2')) {
++      if (!alternativeMoves.some((a) => a.san.includes('O-O-O'))) {
++        alternativeMoves.push({
++          san: 'O-O-O#',
++          uci: 'e1c1',
++          explanation: 'Эстетически безупречный мат длинной рокировкой!',
++        });
++      }
++    } else if (study.id === 'tarrasch-scheve-1894' && currentNode.san.includes('Rxf8')) {
++      if (!alternativeMoves.some((a) => a.san.includes('Qxf8'))) {
++        alternativeMoves.push({
++          san: 'Qxf8#',
++          uci: 'f6f8',
++          explanation: 'Мат ферзем!',
++        });
++      }
++    } else {
++      // Динамическая проверка на альтернативные легальные матующие ходы
++      try {
++        const cEngine = new Chess(fenBefore);
++        const legals = cEngine.moves({ verbose: true });
++        for (const lm of legals) {
++          const testC = new Chess(fenBefore);
++          testC.move(lm.san);
++          if (testC.isCheckmate()) {
++            const cleanAlt = lm.san.replace(/[!?+#\s]/g, '');
++            const cleanCur = currentNode.san.replace(/[!?+#\s]/g, '');
++            if (
++              cleanAlt !== cleanCur &&
++              !alternativeMoves.some((a) => a.san.replace(/[!?+#\s]/g, '') === cleanAlt)
++            ) {
++              alternativeMoves.push({
++                san: lm.san,
++                uci: `${lm.from}${lm.to}`,
++                explanation: `Альтернативный победный мат (${lm.san})!`,
++              });
++            }
++          }
++        }
++      } catch {
++        // Безопасный фолбэк при анализе FEN
++      }
++    }
++
+     const moveNum = Math.floor(stepIndex + 1);
+ 
+     steps.push({
+@@ -228,6 +285,7 @@ export function getCalculationStepsForStudy(study: VukovicStudy): CalculationSte
+       bestMoveSan: currentNode.san,
+       bestMoveUci: currentNode.uci,
+       bestMoveExplanation: currentNode.comment || 'Сильнейший атакующий ход по концепции Вуковича.',
++      alternativeMoves: alternativeMoves.length > 0 ? alternativeMoves : undefined,
+       blunders: blunders.length > 0 ? blunders : undefined,
+       hints: {
+         level1Concept:
+@@ -244,6 +302,7 @@ export function getCalculationStepsForStudy(study: VukovicStudy): CalculationSte
+       break;
+     }
+     currentNode = nextWhiteNode;
++    currentWhiteSiblings = nextWhiteSiblings;
+   }
+ 
+   return steps.length > 0
+@@ -391,7 +450,7 @@ export function CalculationTrainer({
+ 
+   // Обработка успешного выполнения шага
+   const handleStepSuccess = useCallback(
+-    (quality: 'best' | 'alternative', moveElapsedSec: number) => {
++    (quality: 'best' | 'alternative', moveElapsedSec: number, actualFenAfter?: string) => {
+       const attempts = (stepAttempts[currentStepIndex] || 0) + 1;
+       const hintLvl = highestHintLevelUsed[currentStepIndex] || 0;
+ 
+@@ -437,7 +496,7 @@ export function CalculationTrainer({
+       };
+ 
+       setStepScores((prev) => [...prev, scoreItem]);
+-      setBoardFen(currentStep.expectedFenAfter);
++      setBoardFen(actualFenAfter || currentStep.expectedFenAfter);
+       setCustomArrows([]);
+       setCustomHighlights({});
+ 
+@@ -542,7 +601,13 @@ export function CalculationTrainer({
+         } else {
+           playMoveSound();
+         }
+-        handleStepSuccess('best', moveElapsed);
++        let resultingFen = currentStep.expectedFenAfter;
++        try {
++          const c = new Chess(boardFen || currentStep.fenBefore);
++          const m = c.move(moveSan);
++          if (m) resultingFen = c.fen();
++        } catch {}
++        handleStepSuccess('best', moveElapsed, resultingFen);
+         return true;
+       }
+ 
+@@ -558,10 +623,34 @@ export function CalculationTrainer({
+         } else {
+           playMoveSound();
+         }
+-        handleStepSuccess('alternative', moveElapsed);
++        let resultingFen = currentStep.expectedFenAfter;
++        try {
++          const c = new Chess(boardFen || currentStep.fenBefore);
++          const m = c.move(moveSan);
++          if (m) resultingFen = c.fen();
++        } catch {}
++        handleStepSuccess('alternative', moveElapsed, resultingFen);
+         return true;
+       }
+ 
++      // 2.1. Любой легальный ход белых, ставящий мат королю соперника,
++      // завершает атаку победой
++      try {
++        const chessEngine = new Chess(boardFen || currentStep.fenBefore);
++        const testMove = chessEngine.move(moveSan);
++        if (testMove && chessEngine.isCheckmate()) {
++          if (moveSan.includes('x')) {
++            playCaptureSound();
++          } else {
++            playMoveSound();
++          }
++          handleStepSuccess('alternative', moveElapsed, chessEngine.fen());
++          return true;
++        }
++      } catch {
++        // нелегальный ход
++      }
++
+       // 3. Ход является ошибкой (Blunder) или ложным следом
+       setCleanRunBroken(true);
+ 

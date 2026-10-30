@@ -1,0 +1,59 @@
+{
+  "name": "nonchalant-local-hud",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.cjs",
+  "scripts": {
+    "setup": "npm ci --no-audit --no-fund && node node_modules/electron/install.js",
+    "build": "node build.mjs",
+    "start": "npm run build && electron .",
+    "typecheck": "../node_modules/.bin/tsc --project tsconfig.json",
+    "test": "../node_modules/.bin/tsx tests/recognition.test.ts && ../node_modules/.bin/tsx tests/controller.test.ts && ../node_modules/.bin/tsx tests/detector.test.ts",
+    "smoke": "npm run build && electron . --hud-smoke",
+    "test:raster": "electron tests/recognition.electron.cjs",
+    "dist:win": "npm run build && electron-builder --win portable nsis",
+    "dist:win-portable": "npm run build && electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.nonchalant.hud",
+    "productName": "nonchalant HUD",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/stockfish",
+        "to": "stockfish",
+        "filter": [
+          "*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "portable",
+        "nsis"
+      ],
+      "artifactName": "${productName}-${version}-${target}.${ext}"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-portable.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "45.2.0",
+    "electron-builder": "^26.18.0",
+    "esbuild": "0.25.12",
+    "tslib": "^2.8.1"
+  }
+}

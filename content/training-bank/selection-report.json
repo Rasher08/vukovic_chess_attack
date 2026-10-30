@@ -1,0 +1,69 @@
+{
+  "source": "https://database.lichess.org/lichess_db_puzzle.csv.zst",
+  "license": "CC0-1.0",
+  "retrieved": "2026-10-24",
+  "scannedRows": 2088284,
+  "passes": 2,
+  "selected": 480,
+  "selection": "Deterministic prefix scan, 80 per skill, equal rating-band quotas except mating-net; not a random or representative sample.",
+  "criteria": {
+    "rating": [
+      2200,
+      2800
+    ],
+    "ratingDeviationMax": 85,
+    "popularityMin": 85,
+    "playsMin": 500,
+    "sourcePlies": [
+      6,
+      18
+    ],
+    "distinctSourceGame": true,
+    "exclude": [
+      "endgame",
+      "mateIn1",
+      "mateIn2"
+    ],
+    "required": [
+      "middlegame"
+    ]
+  },
+  "quotas": {
+    "king-attack": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "sacrifice": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "calculation": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "defense": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "quiet-move": [
+      20,
+      20,
+      20,
+      20
+    ],
+    "mating-net": [
+      37,
+      20,
+      20,
+      3
+    ]
+  }
+}

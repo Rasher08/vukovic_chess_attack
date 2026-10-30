@@ -1,0 +1,21 @@
+.variation-explorer{width:100%;min-width:0;color:var(--ink)}
+.variation-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px;font-size:11px;color:var(--muted)}
+.variation-heading>span{font-weight:500;letter-spacing:.12em;text-transform:uppercase}
+.variation-heading>button,.variation-controls>button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;background:transparent;color:inherit;font-size:11px!important}
+.variation-heading>button:hover{color:var(--ink)}
+.variation-modes{display:flex;gap:22px;border-bottom:1px solid var(--line);margin-bottom:18px}
+.variation-modes>button{padding:0 0 11px;border-bottom:2px solid transparent;font-size:11px!important;color:var(--muted);text-align:left}
+.variation-modes>button[aria-pressed=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.variation-status{display:flex;justify-content:space-between;gap:16px;margin-top:12px;font-size:11px;line-height:1.7;color:var(--ink)}
+.variation-status>span:last-child{color:var(--muted);text-align:right}
+.variation-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:13px}
+.variation-controls>button{border:1px solid var(--line);padding:8px 12px;color:var(--ink)}
+.variation-controls>button:hover:not(:disabled){background:var(--soft);border-color:var(--accent)}
+.variation-controls>button:disabled{opacity:.4;cursor:default}
+.variation-moves{display:flex;flex-wrap:wrap;gap:4px 8px;min-height:50px;padding:14px 0;border-bottom:1px solid var(--line);font-size:13px;line-height:1.7}
+.variation-moves>span{white-space:nowrap}.variation-moves small{margin-right:5px;color:var(--muted);font-size:10px}
+.variation-moves>p,.variation-note{color:var(--muted);font-size:11px;line-height:1.8;margin:0}
+.variation-note{margin-top:14px}
+.variation-error{margin-top:18px;padding:12px 14px;border-left:2px solid var(--warning);background:var(--warning-bg);color:var(--warning);font-size:12px;line-height:1.8}
+.variation-error>button{margin-top:10px;min-height:40px;text-decoration:underline;text-underline-offset:3px;font-size:11px!important}
+@media(max-width:420px){.variation-heading{align-items:flex-start;gap:10px}.variation-heading>button{max-width:58%;text-align:right;justify-content:flex-end;line-height:1.5}.variation-status{gap:12px;font-size:10px}.variation-modes{gap:18px}.variation-modes>button{font-size:10px!important}.variation-controls>button{font-size:10px!important}}

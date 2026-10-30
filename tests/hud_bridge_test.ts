@@ -1,0 +1,46 @@
+import assert from 'node:assert/strict';
+import { Chess } from 'chess.js';
+import { canonicalHudFen, HudBridgePublisher, selectHudBoard, type HudBridgeMessage, type HudBridgeBoard } from '../src/lib/hudBridge';
+
+async function run() {
+  const initial = new Chess().fen();
+  assert.equal(canonicalHudFen(initial), initial);
+  assert.equal(canonicalHudFen(initial.split(' ')[0]), null, 'placement must not fabricate FEN metadata');
+  assert.equal(canonicalHudFen('4k3/8/8/8/8/8/8/4K3 w - - 0 1'), null, 'terminal draws suppressed');
+  const visible: HudBridgeBoard = { fen: initial, orientation: 'black', blocked: false, visible: () => true };
+  assert.equal(selectHudBoard([visible], true).fen, initial);
+  assert.equal(selectHudBoard([visible], true).orientation, 'black');
+  assert.equal(selectHudBoard([visible, visible], true).fen, null, 'multiple visible boards are ambiguous');
+  assert.equal(selectHudBoard([visible], false).fen, null, 'background page does not publish');
+  assert.equal(selectHudBoard([{ ...visible, blocked: true }], true).fen, null, 'drag and promotion block');
+  let now = 0;
+  const sent: HudBridgeMessage[] = [];
+  const bridge = new HudBridgePublisher({ now: () => now, visible: () => true, session: 'test-session', send: async message => { sent.push(message); } });
+  bridge.update('board', visible);
+  bridge.tick();
+  assert.equal(sent.length, 0, 'off by default');
+  assert.throws(() => bridge.enable('bad-token'));
+  bridge.enable('a'.repeat(64));
+  assert.equal(sent.at(-1)?.fen, null);
+  now = 899; bridge.tick(); assert.equal(sent.at(-1)?.fen, null);
+  now = 900; bridge.tick(); assert.equal(sent.at(-1)?.fen, initial);
+  const next = new Chess(); next.move('e4');
+  bridge.update('board', { ...visible, fen: next.fen() });
+  assert.equal(sent.at(-1)?.fen, null, 'immediate invalidation on position change');
+  bridge.tick();
+  now += 901; bridge.tick(); assert.equal(sent.at(-1)?.fen, next.fen());
+  bridge.update('board', { ...visible, fen: next.fen(), blocked: true });
+  assert.equal(sent.at(-1)?.fen, null, 'immediate invalidation on drag');
+  now += 2000; bridge.tick(); assert.equal(sent.at(-1)?.fen, null);
+  bridge.update('board', { ...visible, fen: next.fen(), blocked: false }); bridge.tick();
+  now += 900; bridge.tick(); assert.equal(sent.at(-1)?.fen, next.fen());
+  bridge.remove('board'); assert.equal(sent.at(-1)?.fen, null, 'unmount clears prior FEN');
+  bridge.disable(); const count = sent.length;
+  now += 2000; bridge.tick(); assert.equal(sent.length, count, 'disabled means no heartbeats');
+  await Promise.resolve();
+  assert.equal(bridge.getStatus(), 'off', 'old completion cannot reactivate after disconnect');
+  assert(sent.every((message, index) => message.sequence === index + 1));
+  assert(sent.every(message => !('score' in message) && !('move' in message) && !('pv' in message)));
+  console.log('hud_bridge_test: metadata, orientation, stability, drag, multi-board, opt-in and invalidation passed');
+}
+void run().catch(error => { console.error(error); process.exitCode = 1; });

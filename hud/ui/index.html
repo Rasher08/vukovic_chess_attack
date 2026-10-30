@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+<title>nonchalant · HUD</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<div id="overlay" hidden><div id="mark">!!</div><div id="overlay-copy"><div id="signal">nonchalant</div><div id="status">Позиция не распознана</div></div></div>
+<main id="settings">
+  <header><div><span class="wordmark">nonchalant <b>!!</b></span><h1>Одна идея. Без подсказки.</h1><p>Локальная проверка кандидата по критериям nonchalant.</p></div><span class="local">● На этом Mac</span></header>
+  <div class="toolbar"><span id="settings-status">Позиция не распознана</span><button id="pause">Пауза</button><button id="collapse">Свернуть HUD</button><button id="move">Переместить HUD</button><label class="sound"><input id="sound" type="checkbox"> Звук</label></div>
+  <nav><button id="direct-tab" class="active">Из nonchalant</button><button id="screen-tab">Распознавание экрана</button></nav>
+  <section id="direct-panel">
+    <div class="eyebrow">НАДЁЖНЫЙ ИСТОЧНИК</div><h2>Позиция прямо с вашей доски</h2>
+    <p>Запустите nonchalant локально, откройте <b>HUD</b> в шапке сайта и вставьте ключ подключения. Оставьте видимой одну доску.</p>
+    <div class="token-row"><input id="token" type="password" readonly aria-label="Ключ подключения"><button id="copy">Скопировать ключ</button></div>
+    <p id="bridge-status" class="note">Ожидаем подключение…</p>
+    <div class="info">Передаются полный FEN и ориентация: сторона хода, рокировки и en passant берутся из приложения. При скрытии вкладки или смене доски сигнал снимается. Ключ действует до закрытия HUD.</div>
+  </section>
+  <section id="screen-panel" hidden>
+    <div class="eyebrow">РАСПОЗНАВАНИЕ С ПРОВЕРКОЙ</div><h2>Доска на экране</h2>
+    <p>Откалибруйте фигуры на начальной позиции вашей темы. Затем подтвердите полный FEN текущей позиции. Пропущенный ход потребует повторного подтверждения.</p>
+    <div class="row"><button id="choose">Выбрать экран</button><button id="region" disabled>Изменить область</button><label>Снизу <select id="orientation"><option value="white">белые</option><option value="black">чёрные</option></select></label><span id="capture-status" class="note">Захват выключен</span></div>
+    <div id="sources"></div>
+    <div id="picker" hidden><p>Выделите мышью квадрат от внешнего угла a8/h1 до противоположного угла. Рамки и подписи вне доски не включайте.</p><canvas id="screen-preview"></canvas><div class="row"><button id="use-region">Использовать область</button><span id="selection-size" class="note"></span></div></div>
+    <div class="inspection"><div><h3>Кадр</h3><canvas id="board-preview" width="256" height="256"></canvas><p id="recognition-status" class="note">Область ещё не выбрана.</p></div><div><h3>Проверка и исправление</h3><div id="editor" aria-label="Распознанная доска"></div><div id="palette" aria-label="Выбор фигуры"></div></div></div>
+    <p class="note">Выберите фигуру в палитре и нажмите клетку для исправления. Жёлтая рамка означает неопределённость. Здесь отображается только распознанная позиция.</p>
+    <label class="block">Полный FEN из надёжного источника<textarea id="fen" rows="2" spellcheck="false" placeholder="Все 6 полей FEN; картинка не определяет сторону хода и права рокировки."></textarea></label>
+    <div class="row"><button id="load-fen">Загрузить в редактор</button><button id="initial">Это начальная позиция</button><button id="edit">Исправить вручную</button></div>
+    <div class="metadata"><label>Ход<select id="turn"><option value="">Неизвестно</option><option value="w">Белые</option><option value="b">Чёрные</option></select></label><label>Рокировки<input id="castling" placeholder="KQkq или -"></label><label>En passant<input id="ep" placeholder="e3 / e6 / -"></label><label>Без взятия / пешки<input id="halfmove" placeholder="0" inputmode="numeric"></label><label>Номер хода<input id="fullmove" placeholder="1" inputmode="numeric"></label></div>
+    <label class="confirm"><input id="confirmed" type="checkbox"> Я проверил фигуры, сторону хода, рокировки, en passant и счётчики.</label>
+    <div class="row"><button id="calibrate" class="primary">Обучить фигуры по этому кадру</button><button id="seed" class="primary">Подтвердить текущую позицию</button></div>
+    <p class="note">Для обучения нужны все 12 видов фигур и пустые клетки. Для подтверждения текущей позиции достаточно точного FEN. После смены темы, масштаба или области обучите фигуры заново.</p>
+    <div class="info">Если macOS блокирует захват: Системные настройки → Конфиденциальность и безопасность → Запись экрана и системного аудио. Разрешите Electron (или приложение, из которого он запущен), затем перезапустите HUD. Звук экрана не записывается.</div>
+  </section>
+  <p id="message" role="status"></p>
+  <footer><span>⌘⇧P — пауза · ⌘⇧H — свернуть · ⌘⇧M — переместить / закрепить</span><p>Закреплённый HUD пропускает все клики. «Проверено» означает, что ограниченная проверка завершена; отсутствие сигнала не доказывает отсутствие идеи. Совпадение со значком Chess.com не гарантируется.</p></footer>
+</main><video id="capture-video" muted hidden></video><script src="renderer.js"></script>
+</body></html>

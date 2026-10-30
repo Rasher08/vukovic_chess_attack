@@ -1,0 +1,28 @@
+{
+  "dragon-rook": {
+    "san": [
+      "Rd5",
+      "Qc7",
+      "Rd3",
+      "Qd8",
+      "Nd5"
+    ],
+    "score": "PovScore(Cp(+102), WHITE)",
+    "depth": 25
+  },
+  "escape-route": {
+    "san": [
+      "Kd2",
+      "Qe1+",
+      "Kc2",
+      "Rae8",
+      "Bd2",
+      "Re2",
+      "Kd3",
+      "Rxd2+",
+      "Nxd2"
+    ],
+    "score": "PovScore(Cp(+305), WHITE)",
+    "depth": 24
+  }
+}

@@ -1,0 +1,122 @@
+[
+  {
+    "id": "eg-01",
+    "sourceId": "distant-opposition",
+    "initialFen": "8/4k3/8/8/4K3/4P3/8/8 w - - 0 1"
+  },
+  {
+    "id": "eg-02",
+    "sourceId": "outside-passer",
+    "initialFen": "8/8/3k4/5p2/P1K2P2/8/8/8 w - - 0 1"
+  },
+  {
+    "id": "eg-03",
+    "sourceId": "connected-passers",
+    "initialFen": "8/8/8/2k5/4PP2/5K2/8/8 w - - 0 1"
+  },
+  {
+    "id": "eg-04",
+    "sourceId": "lucena",
+    "initialFen": "4K3/4P1k1/8/8/8/8/r7/3R4 w - - 0 1"
+  },
+  {
+    "id": "eg-05",
+    "sourceId": "right-bishop",
+    "initialFen": "k7/8/P1K5/8/2B5/8/8/8 w - - 0 1"
+  },
+  {
+    "id": "eg-06",
+    "sourceId": "knight-rook-pawn",
+    "initialFen": "k7/8/P1K5/2N5/8/8/8/8 w - - 0 1"
+  },
+  {
+    "id": "eg-07",
+    "sourceId": "queen-bishoppawn",
+    "initialFen": "8/8/8/8/8/5K2/2pk4/7Q w - - 0 1"
+  },
+  {
+    "id": "eg-08",
+    "sourceId": "opposition-hold",
+    "initialFen": "8/8/4k3/8/3KP3/8/8/8 b - - 0 1"
+  },
+  {
+    "id": "eg-09",
+    "sourceId": "philidor",
+    "initialFen": "8/4k3/1r6/4K3/4P3/8/8/R7 b - - 0 1"
+  },
+  {
+    "id": "eg-10",
+    "sourceId": "rook-behind-passer",
+    "initialFen": "R7/6k1/P7/8/8/5K2/r7/8 b - - 0 1"
+  },
+  {
+    "id": "eg-11",
+    "sourceId": "wrong-bishop",
+    "initialFen": "k7/8/P1K5/8/1B6/8/8/8 b - - 0 1"
+  },
+  {
+    "id": "eg-12",
+    "sourceId": "opposite-bishops",
+    "initialFen": "8/5k2/7b/3PK3/2B5/8/8/8 b - - 0 1"
+  },
+  {
+    "id": "eg-13",
+    "sourceId": "magnus-01",
+    "initialFen": "5b1k/5P1n/6p1/7p/1p3N2/1P4PP/P4K2/2Br4 w - - 0 40"
+  },
+  {
+    "id": "eg-14",
+    "sourceId": "magnus-02",
+    "initialFen": "8/4r1pk/6np/n4R2/P3N3/1r3PP1/6P1/2R3K1 w - - 0 46"
+  },
+  {
+    "id": "eg-15",
+    "sourceId": "magnus-03",
+    "initialFen": "4br2/8/2p4R/1k1p2p1/3Pp1P1/4P1NP/6P1/6K1 w - - 1 48"
+  },
+  {
+    "id": "eg-16",
+    "sourceId": "magnus-04",
+    "initialFen": "1R1r4/p3k1pp/8/2p1P3/5P2/4PK2/n1N3PP/8 w - - 0 33"
+  },
+  {
+    "id": "eg-17",
+    "sourceId": "magnus-05",
+    "initialFen": "r5k1/5p2/3p1Rp1/r5Pp/1B1P3P/4P3/4K3/8 w - - 0 49"
+  },
+  {
+    "id": "eg-18",
+    "sourceId": "magnus-06",
+    "initialFen": "3r2k1/6p1/4p3/2p1P2p/2P3P1/4Pp2/5P2/R5K1 b - - 0 35"
+  },
+  {
+    "id": "eg-19",
+    "sourceId": "magnus-07",
+    "initialFen": "1k6/1pN5/1R4p1/P3Pn1p/3p3P/3r1PPK/8/8 w - - 1 64"
+  },
+  {
+    "id": "eg-20",
+    "sourceId": "magnus-08",
+    "initialFen": "3R4/5p1k/1np3rn/1p5N/4p3/1PP4P/2B2K2/8 w - - 1 40"
+  },
+  {
+    "id": "eg-21",
+    "sourceId": "magnus-09",
+    "initialFen": "3b2k1/5p2/2p2n2/p3p1Bp/P1N1P3/2P5/5PK1/8 w - - 0 62"
+  },
+  {
+    "id": "eg-22",
+    "sourceId": "magnus-10",
+    "initialFen": "6k1/2p2pp1/1p1r3p/p7/P4P2/2P1PK2/1P6/4R3 b - - 1 34"
+  },
+  {
+    "id": "eg-23",
+    "sourceId": "magnus-11",
+    "initialFen": "6B1/8/8/2pkP2R/p6p/Pb6/1K4PP/6r1 b - - 6 47"
+  },
+  {
+    "id": "eg-24",
+    "sourceId": "magnus-12",
+    "initialFen": "6k1/pp1r2p1/3P1b1p/3R4/1r6/4PN2/P3K3/3R4 b - - 5 31"
+  }
+]

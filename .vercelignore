@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.next-qa/
+.agents/
+.artifacts/
+content/
+tests/
+*.tsbuildinfo
+*.md
+.env*
+.DS_Store

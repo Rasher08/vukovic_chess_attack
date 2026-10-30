@@ -1,0 +1,15 @@
+.analysis-chart svg{touch-action:pan-y;border-radius:3px}
+.analysis-chart svg:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.analysis-chart-dark{fill:#34363c}
+.analysis-chart-area{fill:#ebecf0}
+.analysis-chart-zero{stroke:#888b93;stroke-width:1;stroke-opacity:.7}
+.analysis-chart-line{stroke:#c2c6ce}
+.analysis-chart-cursor{stroke:#f0877e}
+.analysis-chart-current{fill:#f0877e;stroke:#34363c;stroke-width:1.5}
+.analysis-chart .analysis-chart-dot{stroke:#34363c;stroke-width:1.2}
+.analysis-chart .analysis-chart-dot.is-brilliant{fill:#43cab7}
+.analysis-chart .analysis-chart-dot.is-excellent{fill:#86aeca}
+.analysis-chart .analysis-chart-dot.is-inaccuracy{fill:#e5c078}
+.analysis-chart .analysis-chart-dot.is-mistake{fill:#f3aa68}
+.analysis-chart .analysis-chart-dot.is-blunder{fill:#ed7772}
+.analysis-chart .analysis-chart-dot.is-trilliant{fill:#b48bdb}.analysis-chart .analysis-chart-dot.is-great{fill:#7daace}.analysis-chart .analysis-chart-dot.is-excellent{fill:#92b768}.analysis-chart .analysis-chart-dot.is-miss{fill:#ed7b6c}
