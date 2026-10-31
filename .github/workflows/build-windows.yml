@@ -35,6 +35,7 @@ jobs:
 
       - name: Run HUD tests
         working-directory: ./hud
+        shell: bash
         run: |
           npm run typecheck
           npm test
