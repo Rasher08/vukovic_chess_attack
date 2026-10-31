@@ -212,6 +212,9 @@ async function fakeTests(){
   await assert.rejects(engine.analyze(initial,{searchMoves:['e2e5']}),/legal UCI/);
   await assert.rejects(engine.analyze(initial+'\ngo infinite'),/Invalid engine FEN/);
   await assert.rejects(engine.analyze(initial,{nodes:NaN}),/positive integers/);
+  for(const depth of [0,129,1.5,NaN])await assert.rejects(engine.analyze(initial,{depth}),/depth/);
+  await engine.analyze(initial,{nodes:1000000,depth:22});
+  assert(worker.commands.includes('go nodes 1000000 depth 22'),'Forward bounded target depth to UCI');
   assert.equal((await engine.analyze(initial)).bestMove,'e2e4','invalid request must not poison queue');engine.dispose();assert(worker.terminated);
   await assert.rejects(engine.ready(),/disposed/);
   const stopped=new FakeWorker('silent-search');const active=new BrowserChessEngine({workerFactory:()=>stopped as unknown as Worker});await active.ready();

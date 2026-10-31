@@ -20,6 +20,8 @@ export interface BrowserEngineAnalysis {
 
 export interface BrowserEngineSearchOptions {
   nodes?: number;
+  /** Target search depth; callers must verify the returned depth when capped. */
+  depth?: number;
   moveTimeMs?: number;
   searchMoves?: string[];
   multiPv?: number;
@@ -127,6 +129,7 @@ export class BrowserChessEngine {
         }
       }
       const multiPv = request.multiPv ?? 1;
+      if (request.depth !== undefined && (!Number.isSafeInteger(request.depth) || request.depth < 1 || request.depth > 128)) throw new Error('Engine depth must be an integer from 1 to 128');
       if (!Number.isSafeInteger(multiPv) || multiPv < 1 || multiPv > 3) throw new Error('Engine MultiPV must be an integer from 1 to 3');
       const idleTimeout = this.options.searchIdleTimeoutMs;
       if (idleTimeout !== undefined && (!Number.isSafeInteger(idleTimeout) || idleTimeout <= 0)) {
@@ -147,8 +150,9 @@ export class BrowserChessEngine {
       const limits = request.nodes !== undefined ? `nodes ${request.nodes}`
         : request.moveTimeMs !== undefined ? '' : 'nodes 200000';
       const time = request.moveTimeMs !== undefined ? `movetime ${request.moveTimeMs}` : '';
+      const depth = request.depth !== undefined ? `depth ${request.depth}` : '';
       const restricted = request.searchMoves?.length ? 'searchmoves ' + request.searchMoves.join(' ') : '';
-      const command = ['go', limits, time, restricted].filter(Boolean).join(' ');
+      const command = ['go', limits, depth, time, restricted].filter(Boolean).join(' ');
       const timeout = Math.max(idleTimeout ?? this.options.searchTimeoutMs ?? 30000, request.moveTimeMs === undefined ? 0 : request.moveTimeMs + 10000);
       const analysis: BrowserEngineAnalysis = { bestMove: null, score: null, pv: [], depth: 0 };
       const candidates = new Map<number, BrowserEngineLine>();

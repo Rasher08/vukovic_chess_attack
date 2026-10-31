@@ -18,6 +18,7 @@ export interface HudAPI {
   configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; collapsed?: boolean; movable?: boolean }): Promise<void>;
   openSettings(): void;
   copyToken(): Promise<void>;
+  copyDiagnostics(): Promise<void>;
   openExtension(): Promise<void>;
   onState(listener: (state: AppState) => void): () => void;
   onSound(listener: () => void): () => void;

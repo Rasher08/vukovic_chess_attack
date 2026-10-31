@@ -274,6 +274,7 @@ function initializeControls() {
   $('move').onclick = () => { void window.hud.configure({ movable: !state.movable }); };
   input('sound').onchange = () => { void window.hud.configure({ sound: input('sound').checked }); };
   $('copy').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в меню HUD на сайте.')); };
+  $('copy-diagnostics').onclick = () => { void window.hud.copyDiagnostics().then(() => message('Диагностика скопирована. Её можно вставить в сообщение для проверки сигнала.')); };
   $('copy-moves').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в расширение на вкладке Chess.com.')); };
   $('open-extension').onclick = () => { void window.hud.openExtension().catch(() => message('Не удалось открыть папку расширения.')); };
   void window.hud.getToken().then(token => { input('token').value = token; input('moves-token').value = token; });

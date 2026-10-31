@@ -1,0 +1,7 @@
+[Event "HUD regression: user-provided move list"]
+[Result "*"]
+
+1. e4 d5 2. exd5 Nf6 3. Nc3 Nxd5 4. Nxd5 Qxd5 5. Nf3 Nc6 6. d4 Bg4
+7. Be2 e5 8. dxe5 Qxd1+ 9. Kxd1 O-O-O+ 10. Ke1 Bxf3 11. Bxf3 Nxe5
+12. Be2 Bc5 13. Bf4 Rhe8 14. Rd1 Rxd1+ 15. Kxd1 Rd8+ 16. Kc1 Ng6
+17. Be3 Bxe3+ 18. fxe3 Nh4 19. Bf3 Re8 20. e4 f5 *

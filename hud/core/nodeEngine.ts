@@ -9,6 +9,7 @@ export interface NodeEngineOptions {
   executablePath?: string;
   startupTimeoutMs?: number;
   searchTimeoutMs?: number;
+  searchIdleTimeoutMs?: number;
 }
 
 /** A Worker-shaped adapter; the production UCI parser and queue remain shared. */
@@ -66,6 +67,7 @@ export class NodeEngine extends BrowserChessEngine {
       workerFactory: () => new ProcessWorker(enginePath, options.executablePath ?? process.execPath) as unknown as Worker,
       startupTimeoutMs: options.startupTimeoutMs ?? 15000,
       searchTimeoutMs: options.searchTimeoutMs ?? 20000,
+      searchIdleTimeoutMs: options.searchIdleTimeoutMs ?? (options.searchTimeoutMs === undefined ? 15000 : undefined),
     });
   }
 }

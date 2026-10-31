@@ -16,6 +16,10 @@ export class HudController {
   private retry: ReturnType<typeof setTimeout> | null = null;
   private cache = new Map<string, { at: number; verdict: Verdict }>();
   private announced = new Set<string>();
+  private notices: { at: string; fen: string }[] = [];
+  /** Explicit troubleshooting export: actual positions only, no engine moves,
+   * scores, lines or pairing secrets. Kept only in memory for this launch. */
+  get notificationHistory() { return this.notices.map(notice => ({ ...notice })); }
   constructor(private createEngine: () => BrowserChessEngine, private detect: Detector,
     private publish: (state: HudState, notify: boolean) => void,
     private retryDelay = 1500) {}
@@ -58,7 +62,11 @@ export class HudController {
   private finish(fen: string, verdict: Verdict) {
     const identity = fen.split(' ').slice(0, 4).join(' ');
     const first = verdict.brilliant && !this.announced.has(identity);
-    if (first) this.announced.add(identity);
+    if (first) {
+      this.announced.add(identity);
+      this.notices.push({ at: new Date().toISOString(), fen });
+      if (this.notices.length > 8) this.notices.shift();
+    }
     this.emit('checked', first, first);
   }
   private async run(fen: string, revision: number, attempt: number) {
@@ -71,9 +79,10 @@ export class HudController {
       this.cache.set(fen, { at: Date.now(), verdict: { brilliant: result.brilliant === true } });
       if (this.cache.size > 128) this.cache.delete(this.cache.keys().next().value!);
       this.finish(fen, result);
-    } catch {
+    } catch (error) {
       if (abort.signal.aborted || revision !== this.state.revision || fen !== this.fen) return;
-      if (attempt === 0) {
+      const retryable = !(error && typeof error === 'object' && 'retryable' in error && error.retryable === false);
+      if (attempt === 0 && retryable) {
         this.retry = setTimeout(() => {
           this.retry = null;
           if (revision === this.state.revision && this.fen === fen) void this.run(fen, revision, 1);

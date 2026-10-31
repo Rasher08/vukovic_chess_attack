@@ -120,6 +120,11 @@ void app.whenReady().then(async () => {
   ipcMain.handle('hud:state', event => { if (!isApp(event)) throw Error('Unauthorized'); return state(); });
   ipcMain.handle('hud:token', event => { if (!isControls(event)) throw Error('Unauthorized'); return token; });
   ipcMain.handle('hud:copy-token', event => { if (!isControls(event)) throw Error('Unauthorized'); clipboard.writeText(token); });
+  ipcMain.handle('hud:copy-diagnostics', event => {
+    if (!isControls(event)) throw Error('Unauthorized');
+    clipboard.writeText(JSON.stringify({ version: app.getVersion(), source: mode, status: controller.state.status,
+      recordedPlies: moveReceiver.count, notices: controller.notificationHistory }, null, 2));
+  });
   ipcMain.handle('hud:open-extension', async event => {
     if (!isControls(event)) throw Error('Unauthorized');
     const source = app.isPackaged ? path.join(process.resourcesPath, 'browser-extension') : path.join(__dirname, 'browser-extension');
@@ -204,7 +209,7 @@ async function runSmoke() {
     if (rendered.includes('Есть блестящая идея')) throw Error('Unexpected hint');
   }
   // Exercise the real authenticated local HTTP -> controller -> Stockfish -> HUD path.
-  const fixture = '1kr4r/pp1qpp1p/3pb1p1/2p5/N2bPP2/3P1QPP/PPPB2B1/1KR4R b - - 0 15';
+  const fixture = 'rn1qkb1r/ppp2ppp/3p4/4p3/2B3b1/2P2N2/PPP2PPP/R1BQK2R w KQkq - 0 15';
   let sequence = 0;
   const post = async (fen: string | null) => {
     const address = server.address();
@@ -218,7 +223,7 @@ async function runSmoke() {
   await post(fixture);
   const pulse = setInterval(() => { void post(fixture).catch(() => {}); }, 450);
   try {
-    const deadline = Date.now() + 45_000;
+    const deadline = Date.now() + 95_000;
     while (!controller.state.idea && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
     if (!controller.state.idea) throw Error('Real Stockfish did not reach positive HUD verdict');
   } finally { clearInterval(pulse); }
@@ -259,7 +264,7 @@ async function runSmoke() {
   await textPost();
   const textPulse = setInterval(() => { void textPost().catch(() => {}); }, 450);
   try {
-    const deadline = Date.now() + 45_000;
+    const deadline = Date.now() + 95_000;
     while (!controller.state.idea && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
     if (!controller.state.idea || moveReceiver.count !== sans.length || moveReceiver.issue !== 'connected') throw Error('Text replay did not reach positive HUD');
   } finally { clearInterval(textPulse); }

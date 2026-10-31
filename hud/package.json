@@ -10,11 +10,12 @@
     "build": "node build.mjs",
     "start": "npm run build && electron .",
     "typecheck": "tsc --project tsconfig.json",
-    "test": "tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/detector.test.ts",
+    "test": "tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/depthGate.test.ts && tsx tests/detector.test.ts",
     "test:moves": "npm run build && electron tests/moves.electron.cjs",
     "smoke": "npm run build && electron . --hud-smoke",
     "test:raster": "electron tests/recognition.electron.cjs",
     "test:game": "tsx tests/game-replay.test.ts",
+    "test:reported-game": "tsx tests/reportedGame.test.ts",
     "test:game:raster": "electron tests/game-raster.electron.cjs",
     "dist:win": "npm run build && electron-builder --win portable nsis --x64 --publish never",
     "dist:win-portable": "npm run build && electron-builder --win portable --x64 --publish never"

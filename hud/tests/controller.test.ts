@@ -21,6 +21,10 @@ async function main() {
   controller.accept(b); controller.accept(b);
   assert(controller.state.idea, 'Repeated readings of a checked positive position keep the visual signal');
   assert.equal(announcements, 1, 'Repeated readings do not play another notification');
+  assert.equal(controller.notificationHistory.length, 1);
+  assert.equal(controller.notificationHistory[0].fen, b, 'Troubleshooting records the actual signaled position');
+  const diagnostic = controller.notificationHistory; diagnostic[0].fen = 'modified';
+  assert.equal(controller.notificationHistory[0].fen, b, 'Copied diagnostics cannot mutate internal history');
   controller.accept(null); assert.equal(controller.state.idea, false); assert.equal(controller.state.status, 'unknown');
   controller.accept(b); assert.equal(searches, 2); assert.equal(controller.state.idea, false, 'cached repeated position does not announce twice');
   controller.setPaused(true); controller.accept(a); assert.equal(controller.state.status, 'paused');
@@ -35,6 +39,13 @@ async function main() {
   assert.equal(attempts, 2); assert.equal(retry.state.status, 'checked'); retry.dispose();
   const failed = new HudController(() => ({ dispose() {} } as BrowserChessEngine), async () => { throw Error('Failed'); }, () => {}, 1);
   failed.accept(a); await new Promise(resolve => setTimeout(resolve, 20)); assert.equal(failed.state.status, 'error'); assert(!failed.state.idea); failed.dispose();
+  let cappedAttempts = 0;
+  const capped = new HudController(() => ({ dispose() {} } as BrowserChessEngine), async () => {
+    cappedAttempts++; throw Object.assign(Error('Insufficient depth'), { retryable: false });
+  }, () => {}, 1);
+  capped.accept(a); await new Promise(resolve => setTimeout(resolve, 20));
+  assert.equal(cappedAttempts, 1, 'A deterministic depth/node cap is not repeated at the same budget');
+  assert.equal(capped.state.status, 'error'); assert(!capped.state.idea); capped.dispose();
 
   const token = 'a'.repeat(64); let result: string | null = null;
   const receiver = new BridgeReceiver(token, fen => { result = fen; });
