@@ -52,6 +52,7 @@ function result(game: Chess, score: EngineResult['score'], preferred?: string, d
 function fakeEngine(candidate: SacrificeCandidate, config: {
   best?: EngineResult['score']; chosen?: EngineResult['score']; alternative?: EngineResult['score'];
   accepted?: EngineResult['score']; depth?: number; bestIsDifferent?: boolean; failAcceptance?: boolean;
+  deeperAlternative?: EngineResult['score'];
   onSearch?: (call: number) => void;
 } = {}) {
   const calls: { fen: string; searchMoves?: string[]; nodes?: number }[] = [];
@@ -66,7 +67,7 @@ function fakeEngine(candidate: SacrificeCandidate, config: {
     const forcedCandidate = options?.searchMoves?.length === 1 && options.searchMoves[0] === candidate.uci;
     const alternative = options?.searchMoves && !options.searchMoves.includes(candidate.uci);
     const bestMove = options?.searchMoves?.[0] || (config.bestIsDifferent ? game.moves({ verbose: true }).map(uci).find(move => move !== candidate.uci)! : candidate.uci);
-    const score = alternative ? config.alternative === undefined ? cp(0) : config.alternative
+    const score = alternative ? (options?.nodes ?? 0) >= 1_200_000 && config.deeperAlternative !== undefined ? config.deeperAlternative : config.alternative === undefined ? cp(0) : config.alternative
       : forcedCandidate ? config.chosen === undefined ? cp(100) : config.chosen
         : config.best === undefined ? cp(100) : config.best;
     return result(game, score, bestMove, config.depth);
@@ -110,6 +111,16 @@ async function run() {
   assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), onlyWin.engine, { nodes: 600_000 })).brilliant, true, 'A unique mating sacrifice is not excluded merely because best score is mate');
   assert(onlyWin.calls[1].searchMoves!.every(move => move !== queen.uci));
   assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), fakeEngine(queen, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, false);
+
+  const significant = fakeEngine(greek, { best: cp(500), alternative: cp(350), accepted: cp(510) });
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek, cp(500)), baseline(greek, cp(500)), significant.engine, { nodes: 600_000 })).brilliant, true, 'A substantially weaker winning alternative does not automatically disqualify a sound sacrifice');
+  assert(significant.calls.filter(c => c.fen === greek.fenBefore && c.nodes === 1_200_000).length >= 2, 'Confirm the root and alternative again at doubled budget');
+  assert.equal(significant.calls.at(-1)?.nodes, 1_200_000, 'Do not compare strengthened root scores with a weaker acceptance search');
+  for (const config of [
+    { best: cp(500), alternative: cp(450), accepted: cp(500) },
+    { best: cp(500), alternative: cp(350), deeperAlternative: cp(450), accepted: cp(500) },
+    { best: cp(500), alternative: cp(350), accepted: cp(100) },
+  ]) assert.equal((await verifyBrilliantMove(greek, baseline(greek, cp(500)), baseline(greek, cp(500)), fakeEngine(greek, config).engine, { nodes: 600_000 })).brilliant, false, 'Close alternatives, an unstable gap and refuted acceptance still suppress the badge');
 
   const blackFen = rotateAndSwap(greekFen);
   const black = inspectSacrifice(blackFen, 'e6a2')!;

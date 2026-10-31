@@ -100,10 +100,12 @@ export async function detectBrilliant(
     if (lines.length !== Math.min(3, candidates.length) || lines.some(line => line.depth < 12)) throw new IncompleteAnalysisError('Не удалось сравнить кандидатов.');
     for (const line of lines) {
       check();
-      if (line.depth < 12 || !sound(before.score, line.score)) continue;
+      // Ranking only selects work. A MultiPV score at a different search budget
+      // must not veto the website's shared verification of that candidate.
+      if (line.depth < 12) continue;
       const candidate = candidates.find(c => c.uci === line.bestMove);
       if (!candidate) throw new IncompleteAnalysisError('Ответ движка не соответствует кандидатам.');
-      const chosen = await analyze(board.fen(), { searchMoves: [candidate.uci] });
+      const chosen = before.bestMove === candidate.uci ? before : await analyze(board.fen(), { searchMoves: [candidate.uci] });
       if (!sound(before.score, chosen.score)) continue;
       // Existing verifier searches the unrestricted root, forced offer, all legal
       // acceptances, and (when winning) the strongest alternative to the offer.

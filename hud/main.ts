@@ -240,9 +240,9 @@ async function runSmoke() {
   const modeDeadline = Date.now() + 3000;
   while (mode !== 'moves' && Date.now() < modeDeadline) await new Promise(resolve => setTimeout(resolve, 20));
   if (mode !== 'moves') throw Error('Text source did not activate');
-  const sans = ['f4','d5','e3','Nf6','b3','e6','Bb2','Be7','Bd3','b6','Nf3','Bb7','Nc3','Nbd7','O-O','O-O','Ne2','c5','Ng3','Qc7','Ne5','Nxe5','Bxe5','Qc6','Qe2','a6','Nh5','Nxh5'];
+  const sans = ['e4','e5','Nf3','Nf6','Nxe5','Nc6','Nxc6','dxc6','d3','Bc5','Bg5'];
   const board = new Chess(); sans.forEach(san => board.move(san));
-  if (board.fen() !== 'r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15') throw Error('Text fixture does not reconstruct the expected FEN');
+  if (board.fen() !== 'r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 2 6') throw Error('Text fixture does not reconstruct the expected FEN');
   let textSequence = 0;
   const textPost = async (ready = true) => {
     const address = server.address(); if (!address || typeof address === 'string') throw Error('Text server missing');
@@ -250,7 +250,7 @@ async function runSmoke() {
       method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'chrome-extension://' + 'a'.repeat(32) },
       body: JSON.stringify({ token, session: 'text-smoke-session', sequence: ++textSequence, sentAt: Date.now(),
         game: 'https://www.chess.com/game/live/smoke-fixture', startFen: new Chess().fen(),
-        moves: sans.map((san, i) => ({ ply: i + 1, san })), currentPly: 28, visible: true, ready }),
+        moves: sans.map((san, i) => ({ ply: i + 1, san })), currentPly: sans.length, visible: true, ready }),
     });
     if (response.status !== 200 || !(await response.json()).ok) throw Error('Text bridge rejected fixture');
   };
@@ -261,7 +261,7 @@ async function runSmoke() {
   try {
     const deadline = Date.now() + 45_000;
     while (!controller.state.idea && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
-    if (!controller.state.idea || moveReceiver.count !== 28 || moveReceiver.issue !== 'connected') throw Error('Text replay did not reach positive HUD');
+    if (!controller.state.idea || moveReceiver.count !== sans.length || moveReceiver.issue !== 'connected') throw Error('Text replay did not reach positive HUD');
   } finally { clearInterval(textPulse); }
   await waitForSignal();
   fs.writeFileSync(path.join(out, 'text-settings.png'), (await controls.webContents.capturePage()).toPNG());

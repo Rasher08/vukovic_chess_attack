@@ -7,6 +7,9 @@ const MIN_INVESTMENT_CP = 200;
 const MIN_VERIFICATION_DEPTH = 12;
 const MIN_VERIFICATION_NODES = 600_000;
 const CLEAR_WIN_CP = 300;
+// A second positive evaluation alone does not make the sacrifice dispensable.
+// Require a full pawn of separation, stable at twice the verification budget.
+const MEANINGFUL_GAP_CP = 100;
 const UCI = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
 
 export interface SacrificeAcceptance {
@@ -105,6 +108,11 @@ function acceptanceHolds(chosen: Score, accepted: Score): boolean {
   return accepted.value >= Math.max(-35, chosen.value - 80);
 }
 
+function meaningfulGap(chosen: Score, alternative: Score): boolean {
+  return finiteScore(chosen) && finiteScore(alternative) && chosen.kind === 'cp' && alternative.kind === 'cp' &&
+    chosen.value - alternative.value >= MEANINGFUL_GAP_CP;
+}
+
 function abortIfNeeded(signal?: AbortSignal): void {
   if (!signal?.aborted) return;
   const error = new Error('Анализ отменён.'); error.name = 'AbortError'; throw error;
@@ -120,9 +128,10 @@ function usable(result: EngineResult, fen: string, allowed?: string[]): boolean 
  * The baseline and forced-move scores use the same root/side-to-move POV.
  * After an opponent accepts the offer, it is the learner's turn again, so the
  * acceptance score is already learner POV: do not negate it for Black.
- * At most seven extra searches; cancellation propagates, any failed check means
- * no badge. A winning root needs the sacrifice to matter: an easy alternative
- * that also keeps a clear win/mate suppresses the brilliant label.
+ * Cancellation propagates; any failed check means no badge. If another move
+ * also wins, a cp-scored sacrifice must beat it by >=100cp in both the normal
+ * and doubled-budget searches. Comparable alternatives and alternative mates
+ * still suppress the badge. This is nonchalant's own criterion, not Chess.com's.
  */
 export async function verifyBrilliantMove(
   candidate: SacrificeCandidate,
@@ -139,21 +148,33 @@ export async function verifyBrilliantMove(
     const inspected = inspectSacrifice(candidate.fenBefore, candidate.uci);
     if (!inspected) return no;
     const nodes = Math.max(MIN_VERIFICATION_NODES, options.nodes);
+    let verificationNodes = nodes;
     const analyze = async (fen: string, searchMoves?: string[]) => {
       abortIfNeeded(options.signal);
-      const result = await engine.analyze(fen, { nodes, ...(searchMoves ? { searchMoves } : {}) });
+      const result = await engine.analyze(fen, { nodes: verificationNodes, ...(searchMoves ? { searchMoves } : {}) });
       abortIfNeeded(options.signal);
       return result;
     };
-    const strongBest = await analyze(inspected.fenBefore);
+    let strongBest = await analyze(inspected.fenBefore);
     if (!usable(strongBest, inspected.fenBefore)) return no;
-    const strongChosen = strongBest.bestMove === inspected.uci ? strongBest : await analyze(inspected.fenBefore, [inspected.uci]);
+    let strongChosen = strongBest.bestMove === inspected.uci ? strongBest : await analyze(inspected.fenBefore, [inspected.uci]);
     if (!usable(strongChosen, inspected.fenBefore, [inspected.uci]) || !soundChoice(strongBest.score, strongChosen.score)) return no;
 
     if (clearlyWinning(strongBest.score)) {
       const alternatives = legalUci(new Chess(inspected.fenBefore)).filter(move => move !== inspected.uci);
       const alternative = await analyze(inspected.fenBefore, alternatives);
-      if (!usable(alternative, inspected.fenBefore, alternatives) || clearlyWinning(alternative.score)) return no;
+      if (!usable(alternative, inspected.fenBefore, alternatives)) return no;
+      if (clearlyWinning(alternative.score)) {
+        if (!meaningfulGap(strongChosen.score, alternative.score) || !Number.isSafeInteger(nodes * 2)) return no;
+        verificationNodes = nodes * 2;
+        const deeperBest = await analyze(inspected.fenBefore);
+        if (!usable(deeperBest, inspected.fenBefore)) return no;
+        const deeperChosen = deeperBest.bestMove === inspected.uci ? deeperBest : await analyze(inspected.fenBefore, [inspected.uci]);
+        const deeperAlternative = await analyze(inspected.fenBefore, alternatives);
+        if (!usable(deeperChosen, inspected.fenBefore, [inspected.uci]) || !usable(deeperAlternative, inspected.fenBefore, alternatives) ||
+          !soundChoice(deeperBest.score, deeperChosen.score) || !meaningfulGap(deeperChosen.score, deeperAlternative.score)) return no;
+        strongBest = deeperBest; strongChosen = deeperChosen;
+      }
     }
 
     for (const acceptance of inspected.acceptances) {

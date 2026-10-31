@@ -3,15 +3,17 @@ import { Chess } from 'chess.js';
 import { detectBrilliant, IncompleteAnalysisError } from '../core/detector';
 import { NodeEngine } from '../core/nodeEngine';
 import { inspectSacrifice } from '../../src/lib/brilliantMove';
+import { analyzeReviewGame, parseReviewPgn } from '../../src/lib/gameReview';
 import type { BrowserEngineAnalysis, BrowserEngineSearchOptions } from '../../src/lib/browserEngine';
 
 const good = 'r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15';
 const bad = 'rnbq1rk1/ppp1bppp/3ppn2/8/3P4/3BPN2/PPP2PPP/RNBQ1RK1 w - - 0 7';
 const trade = '4k3/8/2p5/3n4/2B5/8/8/4K3 w - - 0 1';
 const ordinary = new Chess().fen();
+const easyWinning = '4k3/8/4p3/8/8/8/8/3QK3 w - - 0 1';
 // User-reported position: ...Nxe4 is best, but another move also wins clearly.
-// The existing conservative nonchalant criterion intentionally gives no badge.
-const reported = 'r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 1 2';
+// Both the website and HUD must use the same strengthened alternative check.
+const reported = 'r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 2 6';
 
 function rotated(fen: string) {
   const rows = fen.split(' ')[0].split('/').join('').replace(/[1-8]/g, n => '.'.repeat(Number(n))).split('').reverse()
@@ -56,6 +58,8 @@ async function run() {
     assert(exchange.bestMove === 'c4d5' && exchange.depth >= 12, 'ordinary exchange was also searched by the actual engine');
     assert.deepEqual(await detectBrilliant(trade, engine, new AbortController().signal), { brilliant: false });
     assert.deepEqual(await detectBrilliant(ordinary, engine, new AbortController().signal), { brilliant: false });
+    assert(inspectSacrifice(easyWinning, 'd1d5'), 'The easy winning position really contains a material offer');
+    assert.deepEqual(await detectBrilliant(easyWinning, engine, new AbortController().signal), { brilliant: false }, 'Offering material in an ordinary won position does not earn a notification');
     console.log('PASS ordinary exchange and ordinary best moves produce no signal.');
 
     const reportedBest = await engine.analyze(reported, { nodes: 1_200_000 });
@@ -64,8 +68,18 @@ async function run() {
     const alternative = await engine.analyze(reported, { nodes: 1_200_000, searchMoves: new Chess(reported).moves({ verbose: true })
       .map(m => m.from + m.to + (m.promotion || '')).filter(m => m !== 'f6e4') });
     assert(alternative.score?.kind === 'cp' && alternative.score.value >= 300, 'A different move still keeps a clear win');
-    assert.deepEqual(await detectBrilliant(reported, engine, new AbortController().signal), { brilliant: false }, 'Do not force a badge just because a sacrifice is the best move');
-    console.log('PASS reported ...Nxe4: strongest sacrifice, clear winning alternative, no nonchalant badge.');
+    const tracedBefore = engine.traces.length;
+    assert.deepEqual(await detectBrilliant(reported, engine, new AbortController().signal), { brilliant: true }, 'A sound sacrifice with a verified substantial gap can qualify even when the second move is positive');
+    const strengthened = engine.traces.slice(tracedBefore);
+    assert(strengthened.some(t => t.fen === reported && (t.options.nodes ?? 0) >= 1_200_000 && t.options.searchMoves && !t.options.searchMoves.includes('f6e4')), 'Recheck the best alternative at doubled budget');
+    const reportedOffer = inspectSacrifice(reported, 'f6e4')!;
+    assert(strengthened.some(t => t.fen === reportedOffer.acceptances[0].fenAfterAcceptance && (t.options.nodes ?? 0) >= 1_200_000), 'Acceptance is also searched at the strengthened budget');
+    assert(strengthened.some(t => t.fen === reportedOffer.fenAfterMove && !t.options.searchMoves), 'Strongest unrestricted defense remains mandatory');
+    const reportGame = parseReviewPgn('1.e4 e5 2.Nf3 Nf6 3.Nxe5 Nc6 4.Nxc6 dxc6 5.d3 Bc5 6.Bg5 Nxe4 *');
+    const report = await analyzeReviewGame(reportGame, engine);
+    assert(report.completed);
+    assert.equal(report.results.at(-1)?.classification, 'brilliant', 'Website review and pre-move HUD agree on the reported game');
+    console.log('PASS reported ...Nxe4: doubled root/alternative/acceptance verification, strongest defense, website and HUD agreement.');
   } finally { engine.dispose(); }
 
   const canceled = new NodeEngine();

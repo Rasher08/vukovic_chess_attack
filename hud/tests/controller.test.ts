@@ -18,6 +18,9 @@ async function main() {
   jobs[0].resolve({ brilliant: true }); await tick();
   assert.equal(controller.state.idea, false, 'late positive from obsolete job cannot leak');
   jobs[1].resolve({ brilliant: true }); await tick(); assert(controller.state.idea); assert.equal(announcements, 1);
+  controller.accept(b); controller.accept(b);
+  assert(controller.state.idea, 'Repeated readings of a checked positive position keep the visual signal');
+  assert.equal(announcements, 1, 'Repeated readings do not play another notification');
   controller.accept(null); assert.equal(controller.state.idea, false); assert.equal(controller.state.status, 'unknown');
   controller.accept(b); assert.equal(searches, 2); assert.equal(controller.state.idea, false, 'cached repeated position does not announce twice');
   controller.setPaused(true); controller.accept(a); assert.equal(controller.state.status, 'paused');
