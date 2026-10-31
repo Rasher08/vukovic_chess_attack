@@ -9,6 +9,9 @@ const good = 'r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15';
 const bad = 'rnbq1rk1/ppp1bppp/3ppn2/8/3P4/3BPN2/PPP2PPP/RNBQ1RK1 w - - 0 7';
 const trade = '4k3/8/2p5/3n4/2B5/8/8/4K3 w - - 0 1';
 const ordinary = new Chess().fen();
+// User-reported position: ...Nxe4 is best, but another move also wins clearly.
+// The existing conservative nonchalant criterion intentionally gives no badge.
+const reported = 'r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 1 2';
 
 function rotated(fen: string) {
   const rows = fen.split(' ')[0].split('/').join('').replace(/[1-8]/g, n => '.'.repeat(Number(n))).split('').reverse()
@@ -54,6 +57,15 @@ async function run() {
     assert.deepEqual(await detectBrilliant(trade, engine, new AbortController().signal), { brilliant: false });
     assert.deepEqual(await detectBrilliant(ordinary, engine, new AbortController().signal), { brilliant: false });
     console.log('PASS ordinary exchange and ordinary best moves produce no signal.');
+
+    const reportedBest = await engine.analyze(reported, { nodes: 1_200_000 });
+    assert.equal(reportedBest.bestMove, 'f6e4', 'Reported idea is the actual strongest move');
+    assert(inspectSacrifice(reported, 'f6e4'), 'Reported idea is a structural sacrifice');
+    const alternative = await engine.analyze(reported, { nodes: 1_200_000, searchMoves: new Chess(reported).moves({ verbose: true })
+      .map(m => m.from + m.to + (m.promotion || '')).filter(m => m !== 'f6e4') });
+    assert(alternative.score?.kind === 'cp' && alternative.score.value >= 300, 'A different move still keeps a clear win');
+    assert.deepEqual(await detectBrilliant(reported, engine, new AbortController().signal), { brilliant: false }, 'Do not force a badge just because a sacrifice is the best move');
+    console.log('PASS reported ...Nxe4: strongest sacrifice, clear winning alternative, no nonchalant badge.');
   } finally { engine.dispose(); }
 
   const canceled = new NodeEngine();

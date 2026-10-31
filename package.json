@@ -5,7 +5,7 @@
   "scripts": {
     "hud:setup": "npm --prefix hud run setup",
     "hud": "npm --prefix hud start",
-    "test:hud": "npm --prefix hud run typecheck && npm --prefix hud test && npm --prefix hud run test:raster && npm --prefix hud run smoke && tsx tests/hud_bridge_test.ts",
+    "test:hud": "npm --prefix hud run typecheck && npm --prefix hud test && npm --prefix hud run test:raster && npm --prefix hud run test:moves && npm --prefix hud run smoke && tsx tests/hud_bridge_test.ts",
     "dev": "node scripts/copy_stockfish.mjs && next dev",
     "build": "node scripts/copy_stockfish.mjs && next build",
     "start": "next start",

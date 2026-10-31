@@ -1,6 +1,6 @@
 {
   "name": "nonchalant-local-hud",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local chess position HUD for nonchalant",
   "author": "Rasher08",
   "private": true,
@@ -10,7 +10,8 @@
     "build": "node build.mjs",
     "start": "npm run build && electron .",
     "typecheck": "tsc --project tsconfig.json",
-    "test": "tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/detector.test.ts",
+    "test": "tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/detector.test.ts",
+    "test:moves": "npm run build && electron tests/moves.electron.cjs",
     "smoke": "npm run build && electron . --hud-smoke",
     "test:raster": "electron tests/recognition.electron.cjs",
     "test:game": "tsx tests/game-replay.test.ts",
@@ -28,9 +29,11 @@
     "files": [
       "dist/**/*",
       "!dist/stockfish/**/*",
+      "!dist/browser-extension/**/*",
       "package.json"
     ],
     "extraResources": [
+      { "from": "dist/browser-extension", "to": "browser-extension", "filter": ["*"] },
       {
         "from": "dist/stockfish",
         "to": "stockfish",

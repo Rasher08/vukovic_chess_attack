@@ -7,8 +7,21 @@
 <main id="settings">
   <header><div><span class="wordmark">nonchalant <b>!!</b> <span id="version" class="version"></span></span><h1>Настройка HUD</h1><p>Выберите доску. Дальше HUD работает в фоне.</p></div><span class="local">● Всё на вашем компьютере</span></header>
   <div class="toolbar"><span id="settings-status">Позиция не распознана</span><button id="pause">Пауза</button><button id="collapse">Свернуть HUD</button><button id="move">Переместить HUD</button><label class="sound"><input id="sound" type="checkbox"> Звук</label></div>
-  <nav><button id="direct-tab" class="active">Из nonchalant</button><button id="screen-tab">Доска на экране</button></nav>
-  <section id="direct-panel">
+  <nav><button id="moves-tab" class="active">Ходы Chess.com</button><button id="direct-tab">Из nonchalant</button><button id="screen-tab">Доска на экране</button></nav>
+  <section id="moves-panel">
+    <div class="eyebrow">ТЕКСТ ХОДОВ · БЕЗ ЗАПИСИ ЭКРАНА</div><h2>Запоминаем партию по ходам</h2>
+    <p>Расширение читает запись на Chess.com. HUD хранит историю и ждёт следующий ход. Тема доски, её переворот и прокрутка записи не меняют сохранённую партию.</p>
+    <h3 class="step"><span>1</span> Один раз добавьте расширение в Chrome</h3>
+    <button id="open-extension">Открыть папку расширения</button>
+    <p class="note">Откройте chrome://extensions → включите «Режим разработчика» → «Загрузить распакованное расширение» → выберите открытую папку. Обновите вкладку Chess.com.</p>
+    <h3 class="step"><span>2</span> Подключите вкладку партии</h3>
+    <div class="token-row"><input id="moves-token" type="password" readonly aria-label="Ключ для расширения"><button id="copy-moves">Скопировать ключ</button></div>
+    <p class="note">На вкладке Chess.com нажмите значок расширения, вставьте ключ и выберите «Подключить эту партию». Укажите обычное начало или FEN своей начальной позиции.</p>
+    <div id="moves-status" class="info">Ожидаем список ходов…</div>
+    <p class="note">Подключайте одну партию. Если запись начинается не с первого хода, прокрутите её к началу один раз. При новой партии подключитесь заново. Ключ действует до закрытия HUD.</p>
+    <p class="note">Анализ движком во время партии против людей нарушает Fair Play Chess.com, даже без показа хода. Отсутствие блокировки не гарантируется.</p>
+  </section>
+  <section id="direct-panel" hidden>
     <div class="eyebrow">НАДЁЖНЫЙ ИСТОЧНИК</div><h2>Позиция прямо с вашей доски</h2>
     <p>Запустите nonchalant локально, откройте <b>HUD</b> в шапке сайта и вставьте ключ подключения. Оставьте видимой одну доску.</p>
     <div class="token-row"><input id="token" type="password" readonly aria-label="Ключ подключения"><button id="copy">Скопировать ключ</button></div>

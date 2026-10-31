@@ -76,3 +76,29 @@ export class PositionTracker {
     return { fen: this.currentFen, changed: true };
   }
 }
+
+/** A temporary visual obstruction hides the position without destroying its
+ * last trusted anchor. Only a fresh confident observation can resume it; a
+ * skipped/illegal transition still invalidates all metadata in PositionTracker. */
+export class ScreenPositionTracker {
+  private tracker = new PositionTracker();
+  private visible = false;
+  get currentFen(): string | null { return this.visible ? this.tracker.currentFen : null; }
+  get hasAnchor(): boolean { return this.tracker.currentFen !== null; }
+  get isGameOver(): boolean { return this.visible && this.tracker.isGameOver; }
+  seed(fen: string): string {
+    this.visible = false;
+    const result = this.tracker.seed(fen);
+    this.visible = true;
+    return result;
+  }
+  suspend(): void { this.visible = false; }
+  invalidate(): void { this.visible = false; this.tracker.invalidate(); }
+  observe(placement: string | null): TrackedPosition {
+    this.suspend();
+    if (!placement) return { fen: null, changed: false, reason: 'Фигуры видны не полностью. Уберите курсор и дождитесь устойчивой доски.' };
+    const result = this.tracker.observe(placement);
+    this.visible = result.fen !== null;
+    return result;
+  }
+}

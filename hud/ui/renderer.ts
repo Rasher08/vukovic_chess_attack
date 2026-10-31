@@ -1,6 +1,8 @@
 import { Chess, type Square } from 'chess.js';
 import { calibrate, recognize, FrameStabilityGate, screenSquare, type Orientation, type PixelImage, type TemplateSet, type RecognizedCell } from '../core/recognition';
-import { PositionTracker, validateTrustedFen } from '../core/position';
+import { ScreenPositionTracker, validateTrustedFen } from '../core/position';
+import { SCREEN_STATUS, type ScreenIssue } from '../core/screenStatus';
+import { MOVE_STATUS } from '../core/moveHistory';
 import type { AppState } from '../types';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -11,6 +13,8 @@ const shortcut = (key: string) => isMac ? `⌘⇧${key}` : `Ctrl+Shift+${key}`;
 const labels = { unknown: 'Позиция не распознана', checking: 'Проверяется', checked: 'Проверено', paused: 'Пауза', error: 'Проверка не завершена' };
 let state: AppState;
 function renderState(value: AppState) {
+  // The initial invoke response can arrive after a newer state broadcast.
+  if (state && value.revision < state.revision) return;
   const switched = state && state.mode !== value.mode;
   const wasPaused = state?.status === 'paused'; state = value;
   if (overlayMode) {
@@ -18,7 +22,9 @@ function renderState(value: AppState) {
     document.body.classList.toggle('movable', state.movable);
     $('overlay').className = `${state.status}${state.idea ? ' idea' : ''}`;
     $('signal').textContent = state.idea ? 'Есть блестящая идея' : 'nonchalant';
-    $('status').textContent = state.movable ? `Переместите · ${shortcut('M')} закрепить` : labels[state.status];
+    $('status').textContent = state.movable ? `Переместите · ${shortcut('M')} закрепить`
+      : state.status === 'unknown' && state.mode === 'moves' ? MOVE_STATUS[state.moveIssue]
+      : state.status === 'unknown' && state.mode === 'screen' && state.screenIssue ? SCREEN_STATUS[state.screenIssue] : labels[state.status];
     $('mark').textContent = state.collapsed && state.status === 'checking' ? '··' : state.collapsed && state.status === 'unknown' ? '?' : state.collapsed && state.status === 'paused' ? 'Ⅱ' : '!!';
     return;
   }
@@ -29,16 +35,19 @@ function renderState(value: AppState) {
   $('move').textContent = state.movable ? 'Закрепить HUD' : 'Переместить HUD';
   input('sound').checked = state.sound;
   $('direct-panel').hidden = state.mode !== 'direct'; $('screen-panel').hidden = state.mode !== 'screen';
+  $('moves-panel').hidden = state.mode !== 'moves';
   $('direct-tab').classList.toggle('active', state.mode === 'direct'); $('screen-tab').classList.toggle('active', state.mode === 'screen');
+  $('moves-tab').classList.toggle('active', state.mode === 'moves');
+  $('moves-status').textContent = `${MOVE_STATUS[state.moveIssue]} · Запомнено полуходов: ${state.movesCount}`;
   $('bridge-status').textContent = { waiting: 'Ожидаем подключение…', connected: 'Подключено. Ожидаем устойчивую видимую позицию.', conflict: 'Несколько источников или порт занят. Оставьте подключённой одну вкладку.' }[state.bridge];
   if (switched || state.status === 'paused' && !wasPaused) resetTracking('Подтвердите позицию после смены источника или паузы.');
-  if (switched && state.mode === 'direct') stopCapture();
+  if (switched && state.mode !== 'screen') stopCapture();
 }
 
 const symbols: Record<string, string> = { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟', '.': '·' };
 let orientation: Orientation = 'white';
 let templates: TemplateSet | null = null;
-let tracker = new PositionTracker(), gate = new FrameStabilityGate();
+let tracker = new ScreenPositionTracker(), gate = new FrameStabilityGate();
 let stream: MediaStream | null = null;
 type BoardRect = { x: number; y: number; size: number };
 let rect: BoardRect | null = null;
@@ -55,6 +64,11 @@ let screenSnapshot: ImageData | null = null;
 const boardCanvas = document.createElement('canvas');
 
 function message(text: string) { $('message').textContent = text; }
+function unknown(issue: ScreenIssue, detail?: string) {
+  tracker.suspend();
+  if (detail) $('recognition-status').textContent = detail;
+  window.hud.screenPosition(null, issue);
+}
 function saveSettings() {
   try {
     if (rect) localStorage.setItem('nonchalant:hud:rect', JSON.stringify(rect));
@@ -116,7 +130,7 @@ function resetTracking(reason: string) {
   input('confirmed').checked = false;
   $('calibration-review').hidden = true;
   for (const id of ['turn', 'castling', 'ep', 'halfmove', 'fullmove']) input(id).value = '';
-  window.hud.screenPosition(null); $('recognition-status').textContent = reason;
+  window.hud.screenPosition(null, 'metadata'); $('recognition-status').textContent = reason;
 }
 function stopCapture() {
   stream?.getTracks().forEach(track => track.stop()); stream = null;
@@ -138,29 +152,33 @@ function scan() {
   if (overlayMode || state?.mode !== 'screen' || state.status === 'paused' || picking) return;
   try {
     const image = frame(); currentImage = image;
-    if (!image) { window.hud.screenPosition(null); if (tracker.currentFen) resetTracking('Захват приостановлен. Нажмите «Новая партия» после восстановления.'); return; }
+    if (!image) {
+      if (tracker.hasAnchor) resetTracking('Захват приостановлен. Подтвердите текущую позицию после восстановления.');
+      unknown('capture-lost', 'Нет свежего кадра. Проверьте захват экрана и выбранную область.'); return;
+    }
     const observed = gate.observe(image);
     stable = observed.stable;
-    if (observed.changed) { manual = null; window.hud.screenPosition(null); }
-    if (!stable) { $('recognition-status').textContent = 'Ожидаем устойчивый кадр…'; window.hud.screenPosition(null); return; }
-    if (editing) { window.hud.screenPosition(null); return; }
+    if (observed.changed) { manual = null; lastFingerprint = ''; unknown('settling'); }
+    if (!stable) { unknown('settling', 'Ожидаем устойчивый кадр… Уберите курсор с доски; окно настроек должно быть за её пределами.'); return; }
+    if (editing) { unknown('editing', 'Редактор открыт. Проверьте фигуры и данные ниже, отметьте «Я проверил…» и нажмите «Подтвердить текущую позицию».'); return; }
     if (manual?.fingerprint === observed.fingerprint) { window.hud.screenPosition(tracker.isGameOver ? null : manual.fen); return; }
-    if (!templates) { $('recognition-status').textContent = 'Кадр устойчив. Нажмите «🟢 Начать новую партию» для обучения.'; window.hud.screenPosition(null); return; }
+    if (!templates) { unknown('calibration', 'Кадр устойчив. В начальной позиции нажмите «Начать новую партию». Для текущей позиции загрузите FEN и обучите фигуры ниже.'); return; }
     if (lastFingerprint !== observed.fingerprint) {
       lastFingerprint = observed.fingerprint;
       const result = recognize(image, templates, orientation);
       cells.clear(); result.cells.forEach(cell => cells.set(cell.square, cell.piece ?? '.')); drawEditor(result.cells);
       if (!result.confident) {
-        tracker.invalidate(); $('recognition-status').textContent = 'Есть неоднозначные клетки. Нажмите «🟢 Начать новую партию» при старте игры.';
-        window.hud.screenPosition(null); return;
+        unknown('ambiguous', 'Есть неоднозначные клетки. Уберите курсор и посторонние окна с доски. После помехи отслеживание восстановится, если переход однозначен.'); return;
       }
 
       const next = tracker.observe(result.placement);
       $('recognition-status').textContent = next.fen ? 'Фигуры распознаны. Метаданные отслеживаются.' : next.reason || 'Подтвердите FEN или нажмите «🟢 Новая партия».';
       if (next.fen) updateMetadata(next.fen);
+      else { unknown(tracker.hasAnchor ? 'metadata' : 'tracking-lost'); return; }
     }
     const known = tracker.currentFen;
-    window.hud.screenPosition(known && !tracker.isGameOver ? known : null);
+    if (known && !tracker.isGameOver) window.hud.screenPosition(known);
+    else if (tracker.isGameOver) unknown('game-over');
   } catch (error) { resetTracking('Распознавание остановлено. Проверьте область и положение окна.'); message(error instanceof Error ? error.message : 'Не удалось прочитать кадр.'); }
 }
 function drawEditor(recognized: RecognizedCell[] = []) {
@@ -183,7 +201,7 @@ function drawPalette() {
     $('palette').append(button);
   }
 }
-function beginEdit() { editing = true; manual = null; input('confirmed').checked = false; window.hud.screenPosition(null); }
+function beginEdit() { editing = true; manual = null; input('confirmed').checked = false; unknown('editing'); }
 function placement() {
   return Array.from({ length: 8 }, (_, row) => Array.from({ length: 8 }, (_, col) => cells.get(screenSquare(row, col, 'white')) ?? '.').join('').replace(/\.+/g, v => String(v.length))).join('/');
 }
@@ -249,13 +267,16 @@ function showPicker() {
 function initializeControls() {
   // Setup runs before state arrives. Event closures use initialized module state.
   $('direct-tab').onclick = () => { void window.hud.configure({ mode: 'direct' }); };
+  $('moves-tab').onclick = () => { void window.hud.configure({ mode: 'moves' }); };
   $('screen-tab').onclick = () => { void window.hud.configure({ mode: 'screen' }); };
   $('pause').onclick = () => { void window.hud.configure({ paused: state.status !== 'paused' }); };
   $('collapse').onclick = () => { void window.hud.configure({ collapsed: !state.collapsed }); };
   $('move').onclick = () => { void window.hud.configure({ movable: !state.movable }); };
   input('sound').onchange = () => { void window.hud.configure({ sound: input('sound').checked }); };
   $('copy').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в меню HUD на сайте.')); };
-  void window.hud.getToken().then(token => { input('token').value = token; });
+  $('copy-moves').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в расширение на вкладке Chess.com.')); };
+  $('open-extension').onclick = () => { void window.hud.openExtension().catch(() => message('Не удалось открыть папку расширения.')); };
+  void window.hud.getToken().then(token => { input('token').value = token; input('moves-token').value = token; });
   $('choose').onclick = () => { void chooseScreens(); };
   $('region').onclick = showPicker;
   $('new-game').onclick = startNewGame;
@@ -271,7 +292,7 @@ function initializeControls() {
   window.hud.onNewGame?.(startNewGame);
   loadSavedSettings();
   input('orientation').onchange = () => { orientation = input('orientation').value as Orientation; resetTracking('Ориентация изменена. Нажмите «🟢 Новая партия».'); saveSettings(); drawEditor(); };
-  $('load-fen').onclick = () => { try { loadFen(input('fen').value); message('Сравните редактор с кадром и подтвердите данные.'); } catch (e) { message((e as Error).message); } };
+  $('load-fen').onclick = () => { try { loadFen(input('fen').value); message('Сравните редактор с кадром. Ниже отметьте «Я проверил…», затем нажмите «Подтвердить текущую позицию»; при первом запуске — «Обучить фигуры по этому кадру».'); } catch (e) { message((e as Error).message); } };
   $('initial').onclick = () => { loadFen(new Chess().fen()); message('Начальная позиция выбрана явно. Проверьте, что на экране она же.'); };
   $('edit').onclick = () => { beginEdit(); message('Исправьте фигуры и метаданные, затем подтвердите позицию.'); };
   $('calibrate').onclick = () => confirmPosition(true); $('seed').onclick = () => confirmPosition(false);

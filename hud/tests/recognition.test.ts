@@ -4,7 +4,7 @@ import {
   calibrate, recognize, screenSquare, FrameStabilityGate,
   type PixelImage, type Orientation,
 } from '../core/recognition';
-import { PositionTracker, validateTrustedFen } from '../core/position';
+import { PositionTracker, ScreenPositionTracker, validateTrustedFen } from '../core/position';
 
 // Deterministic raster fixtures exercise orientation, classification, rejection,
 // highlights and frame changes. They are not a claim of universal theme OCR.
@@ -122,4 +122,25 @@ for (const move of ['Nf3', 'Nf6', 'Ng1', 'Ng8', 'Nf3', 'Nf6', 'Ng1', 'Ng8']) {
 assert.equal(tracker.isGameOver, true, 'Tracked repetitions suppress analysis once the game is drawn');
 assert.throws(() => tracker.seed('invalid'));
 assert.equal(tracker.currentFen, null, 'A failed re-seed withdraws old trust');
+
+const screenTracker = new ScreenPositionTracker();
+screenTracker.seed(initial);
+screenTracker.suspend();
+assert.equal(screenTracker.currentFen, null, 'A changed or animated frame cannot reuse the old FEN');
+assert(screenTracker.hasAnchor, 'Keep the last trusted anchor privately during an obstruction');
+assert.equal(screenTracker.observe(null).fen, null, 'An uncertain recognition never reaches analysis');
+assert.equal(screenTracker.currentFen, null);
+assert.equal(screenTracker.observe(initial.split(' ')[0]).fen, initial, 'Returning to the same board resumes without inventing metadata');
+screenTracker.observe(null);
+assert.equal(screenTracker.observe(e4.split(' ')[0]).fen, e4, 'One legal move after a transient obstruction is recoverable');
+screenTracker.suspend();
+const skipped = new Chess(e4); skipped.move('e5'); skipped.move('Nf3');
+assert.equal(screenTracker.observe(skipped.fen().split(' ')[0]).fen, null, 'Multiple skipped moves still fail closed');
+assert.equal(screenTracker.hasAnchor, false, 'An illegal transition requires a fresh full FEN');
+screenTracker.seed(initial); screenTracker.invalidate();
+assert.equal(screenTracker.observe(initial.split(' ')[0]).fen, null, 'A lost capture/source still discards trust');
+screenTracker.seed(initial);
+assert.throws(() => screenTracker.seed('invalid'));
+assert.equal(screenTracker.currentFen, null);
+assert.equal(screenTracker.hasAnchor, false);
 console.log('HUD recognition/tracking checks passed (synthetic raster fixtures).');
