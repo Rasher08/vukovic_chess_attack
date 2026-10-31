@@ -4,6 +4,8 @@ import { ScreenPositionTracker, validateTrustedFen } from '../core/position';
 import { SCREEN_STATUS, type ScreenIssue } from '../core/screenStatus';
 import { MOVE_STATUS } from '../core/moveHistory';
 import type { AppState } from '../types';
+import type { SoundAsset } from '../core/soundStore';
+import { NotificationSoundPlayer, validateSound } from './sound';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -12,10 +14,32 @@ const isMac = navigator.platform.toLowerCase().includes('mac');
 const shortcut = (key: string) => isMac ? `⌘⇧${key}` : `Ctrl+Shift+${key}`;
 const labels = { unknown: 'Позиция не распознана', checking: 'Проверяется', checked: 'Проверено', paused: 'Пауза', error: 'Проверка не завершена' };
 let state: AppState;
+const soundPlayer = new NotificationSoundPlayer(() => {
+  if (previewingSound) { previewingSound = false; $('sound-message').textContent = 'Прослушивание завершено.'; }
+});
+let soundRequest = 0, previewingSound = false;
+let cachedSound: { revision: string; asset: SoundAsset | null } | null = null;
+function stopSound() { ++soundRequest; soundPlayer.stop(); previewingSound = false; }
+async function playSound(preview: boolean) {
+  stopSound(); previewingSound = preview; const request = soundRequest;
+  const settings = state.soundSettings;
+  try {
+    let asset = cachedSound?.revision === settings.revision ? cachedSound.asset : undefined;
+    if (asset === undefined) {
+      asset = await window.hud.readSound();
+      if (request !== soundRequest) return;
+      cachedSound = { revision: settings.revision, asset };
+    }
+    if (request !== soundRequest || !preview && (!state.sound || !state.idea)) return;
+    await soundPlayer.play(asset, settings);
+    if (preview) $('sound-message').textContent = settings.volume === 0 ? 'Громкость — 0%. Поднимите ползунок, чтобы услышать звук.' : 'Прослушивание. «Стоп» остановит звук.';
+  } catch { if (request === soundRequest) $('sound-message').textContent = 'Не удалось воспроизвести звук. Выберите другой файл или стандартный сигнал.'; }
+}
 function renderState(value: AppState) {
   // The initial invoke response can arrive after a newer state broadcast.
   if (state && value.revision < state.revision) return;
   const switched = state && state.mode !== value.mode;
+  const soundChanged = state && state.soundSettings.revision !== value.soundSettings.revision;
   const wasPaused = state?.status === 'paused'; state = value;
   if (overlayMode) {
     document.body.classList.toggle('collapsed', state.collapsed);
@@ -34,6 +58,13 @@ function renderState(value: AppState) {
   $('collapse').textContent = state.collapsed ? 'Развернуть HUD' : 'Свернуть HUD';
   $('move').textContent = state.movable ? 'Закрепить HUD' : 'Переместить HUD';
   input('sound').checked = state.sound;
+  if (soundChanged) { stopSound(); cachedSound = null; }
+  if (!previewingSound && (!state.idea || !state.sound)) stopSound();
+  $('sound-name').textContent = state.soundSettings.name ?? 'Стандартный сигнал';
+  input('sound-volume').value = String(state.soundSettings.volume);
+  $('sound-volume-value').textContent = `${state.soundSettings.volume}%`;
+  input('sound-duration').value = String(state.soundSettings.duration);
+  ($('reset-sound') as HTMLButtonElement).disabled = !state.soundSettings.name;
   $('direct-panel').hidden = state.mode !== 'direct'; $('screen-panel').hidden = state.mode !== 'screen';
   $('moves-panel').hidden = state.mode !== 'moves';
   $('direct-tab').classList.toggle('active', state.mode === 'direct'); $('screen-tab').classList.toggle('active', state.mode === 'screen');
@@ -272,7 +303,26 @@ function initializeControls() {
   $('pause').onclick = () => { void window.hud.configure({ paused: state.status !== 'paused' }); };
   $('collapse').onclick = () => { void window.hud.configure({ collapsed: !state.collapsed }); };
   $('move').onclick = () => { void window.hud.configure({ movable: !state.movable }); };
-  input('sound').onchange = () => { void window.hud.configure({ sound: input('sound').checked }); };
+  input('sound').onchange = () => { stopSound(); void window.hud.configure({ sound: input('sound').checked }); };
+  input('sound-volume').oninput = () => { $('sound-volume-value').textContent = `${input('sound-volume').value}%`; };
+  input('sound-volume').onchange = () => { stopSound(); void window.hud.configure({ volume: Number(input('sound-volume').value) }); };
+  input('sound-duration').onchange = () => { stopSound(); void window.hud.configure({ duration: Number(input('sound-duration').value) }); };
+  $('choose-sound').onclick = async () => {
+    const button = $('choose-sound') as HTMLButtonElement; button.disabled = true; stopSound();
+    $('sound-message').textContent = '';
+    try {
+      const choice = await window.hud.chooseSound();
+      if (choice) {
+        $('sound-message').textContent = 'Проверяем аудиофайл…';
+        await validateSound(choice); await window.hud.confirmSound(choice.id);
+        $('sound-message').textContent = 'Файл сохранён. Нажмите «Прослушать», затем включите «Звук» выше.';
+      }
+    } catch (error) { $('sound-message').textContent = (error as Error).message; }
+    finally { button.disabled = false; }
+  };
+  $('reset-sound').onclick = () => { stopSound(); void window.hud.resetSound().then(() => { $('sound-message').textContent = 'Выбран стандартный сигнал.'; }).catch(() => { $('sound-message').textContent = 'Не удалось сохранить настройку.'; }); };
+  $('preview-sound').onclick = () => { void playSound(true); };
+  $('stop-sound').onclick = () => { stopSound(); $('sound-message').textContent = 'Остановлено.'; };
   $('copy').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в меню HUD на сайте.')); };
   $('copy-diagnostics').onclick = () => { void window.hud.copyDiagnostics().then(() => message('Диагностика скопирована. Её можно вставить в сообщение для проверки сигнала.')); };
   $('copy-moves').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в расширение на вкладке Chess.com.')); };
@@ -316,13 +366,11 @@ function initializeControls() {
     saveSettings();
     message('Область доски сохранена! Откройте стартовую позицию и нажмите «🟢 Начать новую партию».');
   };
-  window.hud.onSound(() => {
-    const audio = new AudioContext(); const tone = audio.createOscillator(); const gain = audio.createGain(); tone.connect(gain); gain.connect(audio.destination); tone.frequency.value = 660; gain.gain.setValueAtTime(.03, audio.currentTime); gain.gain.exponentialRampToValueAtTime(.001, audio.currentTime + .15); tone.start(); tone.stop(audio.currentTime + .16); tone.onended = () => { void audio.close(); };
-  });
+  window.hud.onSound(() => { void playSound(false); });
   // Defer initial drawing until const/let declarations above have initialized.
   queueMicrotask(() => { drawEditor(); drawPalette(); });
   setInterval(scan, 70);
-  window.addEventListener('beforeunload', () => { stopCapture(); window.hud.screenPosition(null); });
+  window.addEventListener('beforeunload', () => { stopSound(); stopCapture(); window.hud.screenPosition(null); });
 }
 
 // Initialize only after all persisted state bindings have been initialized.

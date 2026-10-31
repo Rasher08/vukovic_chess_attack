@@ -40,6 +40,7 @@ jobs:
           npm test
           npm run test:raster
           npm run test:moves
+          npm run test:sound
           npm run smoke
 
       - name: Build Windows Executable (.exe)

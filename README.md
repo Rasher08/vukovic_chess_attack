@@ -1,4 +1,4 @@
-# nonchalant HUD · 0.1.3
+# nonchalant HUD · 0.1.4
 
 Локальный шахматный HUD. Показывает «Есть блестящая идея» после проверки
 кандидата настоящим Stockfish 19 Lite. Ход, фигура, оценка и варианты скрыты.
@@ -7,10 +7,10 @@
 
 ## Что скачать на Windows
 
-**[nonchalant-HUD-0.1.3-portable.exe](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.3/nonchalant-HUD-0.1.3-portable.exe)** — основной вариант: открыть двойным
+**[nonchalant-HUD-0.1.4-portable.exe](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.4/nonchalant-HUD-0.1.4-portable.exe)** — основной вариант: открыть двойным
 щелчком. Node.js, Python и отдельный Stockfish не нужны.
 
-[nonchalant-HUD-0.1.3-setup.exe](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.3/nonchalant-HUD-0.1.3-setup.exe) — тот же HUD с установкой и ярлыком.
+[nonchalant-HUD-0.1.4-setup.exe](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.4/nonchalant-HUD-0.1.4-setup.exe) — тот же HUD с установкой и ярлыком.
 Достаточно одного из этих файлов. Архивы **Source code** для обычного запуска
 не нужны. Сборки предназначены для Windows 10/11 x64.
 
@@ -33,7 +33,7 @@
 начальной расстановки; для своей позиции нужен FEN до первого записанного хода.
 
 [Короткая инструкция](hud/QUICKSTART-WINDOWS.txt) ·
-[Изменения 0.1.3 и ограничения](hud/RELEASE-0.1.3.md).
+[Изменения 0.1.4 и ограничения](hud/RELEASE-0.1.4.md).
 
 | Windows | Действие |
 | --- | --- |

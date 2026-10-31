@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "nonchalant · список ходов",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Передаёт запись ходов Chess.com в локальный nonchalant HUD. Без записи экрана.",
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["http://127.0.0.1/*"],

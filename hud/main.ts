@@ -1,4 +1,4 @@
-import { app, BrowserWindow, clipboard, desktopCapturer, globalShortcut, ipcMain, Menu, nativeImage, screen, session, shell, systemPreferences, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, desktopCapturer, dialog, globalShortcut, ipcMain, Menu, nativeImage, screen, session, shell, systemPreferences, Tray } from 'electron';
 import { randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
 import path from 'node:path';
@@ -11,17 +11,20 @@ import { BridgeReceiver, localOrigin } from './core/bridgeReceiver';
 import { SCREEN_STATUS, type ScreenIssue } from './core/screenStatus';
 import { MoveReceiver, extensionOrigin } from './core/moveReceiver';
 import { MOVE_STATUS } from './core/moveHistory';
+import { SoundStore } from './core/soundStore';
 import type { AppState, SourceMode } from './types';
 
 app.setName('nonchalant HUD');
-const smoke = process.argv.includes('--hud-smoke');
+const soundSmoke = process.argv.includes('--hud-sound-smoke');
+const smoke = process.argv.includes('--hud-smoke') || soundSmoke;
 if (smoke) app.setPath('userData', path.join(app.getPath('temp'), `nonchalant-hud-smoke-${process.pid}`));
 if (!app.requestSingleInstanceLock()) app.quit();
 let controls: BrowserWindow;
 let overlay: BrowserWindow;
 let tray: Tray;
 let mode: SourceMode = smoke ? 'direct' : 'moves';
-let sound = false, collapsed = false, movable = false, paused = false;
+let collapsed = false, movable = false, paused = false;
+let soundStore: SoundStore;
 let captureSource = '', screenSeen = 0;
 let screenIssue: ScreenIssue | null = 'no-capture';
 let bridgeStatus: AppState['bridge'] = 'waiting';
@@ -35,12 +38,12 @@ const engineScript = app.isPackaged
 const controller = new HudController(
   () => new NodeEngine({ enginePath: engineScript }),
   detectBrilliant,
-  (_, notify) => { broadcast(); if (notify && sound && controls && !controls.isDestroyed()) controls.webContents.send('hud:sound'); },
+  (_, notify) => { broadcast(); if (notify && soundStore?.settings.enabled && controls && !controls.isDestroyed()) controls.webContents.send('hud:sound'); },
 );
 const bridge = new BridgeReceiver(token, fen => { if (mode === 'direct') controller.accept(fen); });
 const moveReceiver = new MoveReceiver(token, fen => { if (mode === 'moves') controller.accept(fen); });
 function state(): AppState {
-  return { ...controller.state, mode, sound, collapsed, movable, bridge: bridgeStatus,
+  return { ...controller.state, mode, sound: soundStore?.settings.enabled ?? false, soundSettings: soundStore?.settings ?? { enabled: false, volume: 35, duration: 5, name: null, revision: '' }, collapsed, movable, bridge: bridgeStatus,
     version: app.getVersion(), screenIssue, moveIssue: moveReceiver.issue, movesCount: moveReceiver.count, capturePermission: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'not-required' };
 }
 function broadcast() {
@@ -97,7 +100,8 @@ const server = createServer((req, res) => {
 server.on('error', () => { serverFailed = true; bridgeStatus = 'conflict'; controller.invalidate(); broadcast(); });
 
 void app.whenReady().then(async () => {
-  const webPreferences = { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: false };
+  soundStore = new SoundStore(app.getPath('userData'));
+  const webPreferences: Electron.WebPreferences = { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required' };
   controls = new BrowserWindow({ width: 960, height: 880, minWidth: 780, minHeight: 660, title: 'nonchalant · HUD', backgroundColor: '#17181b', webPreferences, show: false });
   const area = screen.getPrimaryDisplay().workArea;
   overlay = new BrowserWindow({ width: 292, height: 66, x: area.x + area.width - 316, y: area.y + 24, frame: false, transparent: true, resizable: false, hasShadow: false, alwaysOnTop: true, skipTaskbar: true, focusable: false, webPreferences, show: false });
@@ -120,6 +124,18 @@ void app.whenReady().then(async () => {
   ipcMain.handle('hud:state', event => { if (!isApp(event)) throw Error('Unauthorized'); return state(); });
   ipcMain.handle('hud:token', event => { if (!isControls(event)) throw Error('Unauthorized'); return token; });
   ipcMain.handle('hud:copy-token', event => { if (!isControls(event)) throw Error('Unauthorized'); clipboard.writeText(token); });
+  ipcMain.handle('hud:choose-sound', async event => {
+    if (!isControls(event)) throw Error('Unauthorized');
+    const result = await dialog.showOpenDialog(controls, { title: 'Звук блестящей идеи', properties: ['openFile'],
+      filters: [{ name: 'Аудио', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac'] }] });
+    return result.canceled || !result.filePaths[0] ? null : soundStore.stage(result.filePaths[0]);
+  });
+  ipcMain.handle('hud:confirm-sound', (event, id) => {
+    if (!isControls(event) || typeof id !== 'string') throw Error('Unauthorized');
+    soundStore.confirm(id); broadcast();
+  });
+  ipcMain.handle('hud:reset-sound', event => { if (!isControls(event)) throw Error('Unauthorized'); soundStore.reset(); broadcast(); });
+  ipcMain.handle('hud:read-sound', event => { if (!isControls(event)) throw Error('Unauthorized'); return soundStore.read(); });
   ipcMain.handle('hud:copy-diagnostics', event => {
     if (!isControls(event)) throw Error('Unauthorized');
     clipboard.writeText(JSON.stringify({ version: app.getVersion(), source: mode, status: controller.state.status,
@@ -140,7 +156,7 @@ void app.whenReady().then(async () => {
     if (!isControls(event) || !value || typeof value !== 'object') throw Error('Unauthorized');
     if (['screen', 'direct', 'moves'].includes(value.mode) && value.mode !== mode) { mode = value.mode; bridge.reset(); screenSeen = 0; controller.invalidate(); }
     if (typeof value.paused === 'boolean') setPause(value.paused);
-    if (typeof value.sound === 'boolean') sound = value.sound;
+    if (typeof value.sound === 'boolean' || typeof value.volume === 'number' || typeof value.duration === 'number') soundStore.configure({ enabled: value.sound, volume: value.volume, duration: value.duration });
     if (typeof value.collapsed === 'boolean') collapsed = value.collapsed;
     if (typeof value.movable === 'boolean') movable = value.movable;
     layoutOverlay();
@@ -188,7 +204,7 @@ void app.whenReady().then(async () => {
     else if (mode === 'screen' && Date.now() - screenSeen > 1800) controller.accept(null);
   }, 250).unref();
   broadcast();
-  if (smoke) { try { await runSmoke(); app.quit(); } catch (error) { console.error(error); app.exit(1); } return; }
+  if (smoke) { try { if (soundSmoke) await runSoundSmoke(); else await runSmoke(); app.quit(); } catch (error) { console.error(error); app.exit(1); } return; }
   controls.show(); overlay.showInactive();
 });
 let quitting = false;
@@ -196,6 +212,72 @@ app.on('before-quit', () => { quitting = true; controller.dispose(); server.clos
 app.on('second-instance', () => controls && settings());
 app.on('activate', () => controls && settings());
 app.on('window-all-closed', () => app.quit());
+
+async function runSoundSmoke() {
+  // Real media decoding/playback and the real preload IPC in a hidden window.
+  // A generated WAV avoids bundling somebody else's music in the application.
+  const samples = 44100 * 4, wav = Buffer.alloc(44 + samples * 2);
+  wav.write('RIFF', 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write('WAVEfmt ', 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(44100, 24); wav.writeUInt32LE(88200, 28); wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34);
+  wav.write('data', 36); wav.writeUInt32LE(samples * 2, 40);
+  for (let i = 0; i < samples; i++) wav.writeInt16LE(Math.round(Math.sin(i * 2 * Math.PI * 440 / 44100) * 500), 44 + i * 2);
+  const source = path.join(app.getPath('userData'), 'fixture.wav'); fs.writeFileSync(source, wav);
+  const choose = async (file: string | null) => {
+    const original = dialog.showOpenDialog;
+    dialog.showOpenDialog = (async () => ({ canceled: !file, filePaths: file ? [file] : [] })) as typeof dialog.showOpenDialog;
+    try {
+      await controls.webContents.executeJavaScript(`document.getElementById('choose-sound').click()`);
+      const deadline = Date.now() + 12000;
+      while (await controls.webContents.executeJavaScript(`document.getElementById('choose-sound').disabled`)) {
+        if (Date.now() > deadline) throw Error('Sound picker did not finish');
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+    } finally { dialog.showOpenDialog = original; }
+  };
+  await choose(source);
+  if (soundStore.settings.name !== 'fixture.wav') throw Error('Audio picker validation/confirmation failed');
+  await choose(null);
+  if (soundStore.settings.name !== 'fixture.wav') throw Error('Cancel replaced the selected sound');
+  const broken = path.join(app.getPath('userData'), 'broken.mp3'); fs.writeFileSync(broken, 'not audio');
+  await choose(broken);
+  if (soundStore.settings.name !== 'fixture.wav') throw Error('Corrupt audio replaced a working sound');
+  const invalidMessage = await controls.webContents.executeJavaScript(`document.getElementById('sound-message').textContent`);
+  if (!invalidMessage.includes('не воспроизводится')) throw Error('Corrupt audio did not produce a clear error');
+  fs.rmSync(source);
+  await controls.webContents.executeJavaScript(`window.hud.configure({sound:true,volume:12,duration:3})`);
+  if (soundStore.settings.name !== 'fixture.wav' || new SoundStore(app.getPath('userData')).settings.volume !== 12) throw Error('Custom sound settings did not persist');
+  // Render the same source through its full settings UI and allow real autoplay
+  // while the controls window is hidden, as it is during normal HUD use.
+  const rendered = await controls.webContents.executeJavaScript(`document.getElementById('sound-name').textContent`);
+  if (rendered !== 'fixture.wav') throw Error('Custom file name did not render');
+  await controls.webContents.executeJavaScript(`document.getElementById('preview-sound').click()`);
+  await new Promise(resolve => setTimeout(resolve, 600));
+  if (!controls.webContents.isCurrentlyAudible()) throw Error('Custom audio did not play in hidden controls');
+  await controls.webContents.executeJavaScript(`document.getElementById('stop-sound').click()`);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  if (controls.webContents.isCurrentlyAudible()) throw Error('Stop did not stop the audio');
+  const positive = { ...state(), status: 'checked', idea: true };
+  controls.webContents.send('hud:state', positive); controls.webContents.send('hud:sound');
+  await new Promise(resolve => setTimeout(resolve, 600));
+  if (!controls.webContents.isCurrentlyAudible()) throw Error('Notification did not use custom audio');
+  controls.webContents.send('hud:state', { ...state(), status: 'checking', idea: false });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  if (controls.webContents.isCurrentlyAudible()) throw Error('Position withdrawal did not stop custom audio');
+  await controls.webContents.executeJavaScript(`document.getElementById('preview-sound').click()`);
+  await new Promise(resolve => setTimeout(resolve, 3600));
+  if (controls.webContents.isCurrentlyAudible()) throw Error('Clip duration did not stop the audio');
+  await controls.webContents.executeJavaScript(`window.hud.resetSound()`);
+  if (soundStore.read() !== null) throw Error('Reset kept the custom file');
+  await controls.webContents.executeJavaScript(`document.getElementById('preview-sound').click()`);
+  await new Promise(resolve => setTimeout(resolve, 400));
+  const message = await controls.webContents.executeJavaScript(`document.getElementById('sound-message').textContent`);
+  if (message.includes('Не удалось')) throw Error('Built-in tone failed');
+  const out = path.resolve(__dirname, '../test-results'); fs.mkdirSync(out, { recursive: true });
+  await controls.webContents.executeJavaScript(`document.getElementById('sound-panel').open=true`);
+  fs.writeFileSync(path.join(out, 'sound-settings.png'), (await controls.webContents.capturePage()).toPNG());
+  console.log('HUD sound smoke PASS: real WAV decoding/playback in hidden controls, picker validation, canceled/corrupt imports, preload IPC, persistent managed file, volume, preview/stop, notification, immediate withdrawal, duration limit and reset.');
+}
 
 async function runSmoke() {
   const out = path.resolve(__dirname, '../test-results'); fs.mkdirSync(out, { recursive: true });

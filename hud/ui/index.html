@@ -1,12 +1,19 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob: data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
 <title>nonchalant · HUD</title><link rel="stylesheet" href="style.css"></head>
 <body>
 <div id="overlay" hidden><div id="mark">!!</div><div id="overlay-copy"><div id="signal">nonchalant</div><div id="status">Позиция не распознана</div></div></div>
 <main id="settings">
   <header><div><span class="wordmark">nonchalant <b>!!</b> <span id="version" class="version"></span></span><h1>Настройка HUD</h1><p>Выберите доску. Дальше HUD работает в фоне.</p></div><span class="local">● Всё на вашем компьютере</span></header>
   <div class="toolbar"><span id="settings-status">Позиция не распознана</span><button id="pause">Пауза</button><button id="collapse">Свернуть HUD</button><button id="move">Переместить HUD</button><label class="sound"><input id="sound" type="checkbox"> Звук</label></div>
+  <details id="sound-panel" class="sound-panel">
+    <summary>Звук уведомления <span id="sound-name">Стандартный сигнал</span></summary>
+    <div class="row"><button id="choose-sound">Выбрать аудио…</button><button id="preview-sound">Прослушать</button><button id="stop-sound">Стоп</button><button id="reset-sound">Стандартный сигнал</button></div>
+    <div class="row sound-options"><label for="sound-volume">Громкость <input id="sound-volume" type="range" min="0" max="100" step="1" value="35"><output id="sound-volume-value" for="sound-volume">35%</output></label><label>Длительность <select id="sound-duration"><option value="3">3 сек</option><option value="5" selected>5 сек</option><option value="10">10 сек</option><option value="20">20 сек</option><option value="30">30 сек</option></select></label></div>
+    <p class="note">Своя фраза или музыка: MP3, WAV, OGG, M4A, AAC, FLAC до 12 МБ. Играет с начала, один раз при сигнале. Файл и настройки сохраняются. Чтобы включить уведомления со звуком, отметьте «Звук» выше.</p>
+    <p id="sound-message" class="note" role="status"></p>
+  </details>
   <nav><button id="moves-tab" class="active">Ходы Chess.com</button><button id="direct-tab">Из nonchalant</button><button id="screen-tab">Доска на экране</button></nav>
   <section id="moves-panel">
     <div class="eyebrow">ТЕКСТ ХОДОВ · БЕЗ ЗАПИСИ ЭКРАНА</div><h2>Запоминаем партию по ходам</h2>

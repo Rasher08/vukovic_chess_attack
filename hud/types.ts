@@ -1,10 +1,12 @@
 import type { HudState } from './core/controller';
 import type { ScreenIssue } from './core/screenStatus';
 import type { MoveIssue } from './core/moveHistory';
+import type { SoundSettings, SoundAsset, SoundChoice } from './core/soundStore';
 export type SourceMode = 'direct' | 'screen' | 'moves';
 export interface AppState extends HudState {
   version: string;
   mode: SourceMode; sound: boolean; collapsed: boolean; movable: boolean;
+  soundSettings: SoundSettings;
   bridge: 'waiting' | 'connected' | 'conflict'; capturePermission: string;
   screenIssue: ScreenIssue | null;
   moveIssue: MoveIssue; movesCount: number;
@@ -15,7 +17,11 @@ export interface HudAPI {
   sources(): Promise<{ id: string; name: string; thumbnail: string }[]>;
   selectSource(id: string): Promise<void>;
   screenPosition(fen: string | null, issue?: ScreenIssue): void;
-  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; collapsed?: boolean; movable?: boolean }): Promise<void>;
+  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; collapsed?: boolean; movable?: boolean }): Promise<void>;
+  chooseSound(): Promise<SoundChoice | null>;
+  confirmSound(id: string): Promise<void>;
+  resetSound(): Promise<void>;
+  readSound(): Promise<SoundAsset | null>;
   openSettings(): void;
   copyToken(): Promise<void>;
   copyDiagnostics(): Promise<void>;
