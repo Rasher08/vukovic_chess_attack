@@ -173,3 +173,62 @@ node --experimental-strip-types tests/e2e/tier4_real_world/test_s5_full_session_
 ```
 
 All test outputs provide structured TAP / colored progress reports with total elapsed execution time and granular assertion counts.
+
+---
+
+## 6. Nonchalant HUD Computer Vision & Performance Testing Infrastructure
+
+### 6.1. Architecture & Verification Philosophy
+The Nonchalant HUD is an assistive desktop HUD that captures live chess positions from Chess.com and analyzes tactical attacking motifs (especially Greek Gift and Vukovic attacking ideas). The CV recognition engine must operate at high speed (< 25 ms per full 8x8 frame) and 100% accuracy, remaining fully invariant to Chess.com move highlights, edge cropping, in-square coordinates, and visual board themes.
+
+### 6.2. 4-Tier CV Test Suite (`hud/tests/highlights.test.ts`)
+The CV test suite follows a 4-tier requirement-driven structure:
+
+1. **Tier 1: Full Piece & Empty Square Coverage (White & Black Orientations)**:
+   - Covers all 12 standard chess pieces (`P`, `N`, `B`, `R`, `Q`, `K`, `p`, `n`, `b`, `r`, `q`, `k`).
+   - Covers empty light squares and empty dark squares.
+   - Exercises both normal White view and flipped Black board orientation.
+   - Validates that FEN placement and cell coordinate mapping match ground truth.
+
+2. **Tier 2: Boundary Conditions & Edge Robustness**:
+   - Extreme vertical 'h' file edge crop with horizontal translation up to 4px (+1px, +2px, +3px, +4px) simulating imprecise user bounding-box selection.
+   - Extreme corner squares (a1, a8, h1, h8) under boundary shifts.
+   - In-square coordinates ("Coordinates: Inside" feature of Chess.com): rank digits (1-8) in top-left of col 0 and file letters (a-h) in bottom-right of rank 1, specifically verifying corner square a1 (which contains both coordinates).
+
+3. **Tier 3: Chess.com Highlight Combinations & Theme Invariance**:
+   - Move highlight colors: Yellow (`#f7f769`), Green (`#a9bc6c`), Pink/Red (`#eb5757`).
+   - Highlight geometry: full square fills (alpha 0.5-0.75) and colored borders (3px, 4px, 5px, 6px).
+   - **Empty Square Immunity**: Empty squares (d5, e4, c4) with move highlights/borders MUST NEVER be classified as White King ♔ (`K`) or any other piece (`cell.piece === null`).
+   - **Black Piece Accuracy**: Black pawn on e4, black knight on f6, black rook on c8 under colored highlights must remain accurately classified as their true piece type (`p`, `n`, `r`), never White King or Queen.
+   - **White Piece Recognition**: White Queen on h5, Knight on f3, Pawn on e4 under highlights.
+   - **Multi-Theme Support**: Neo (`[235, 236, 208]` / `[119, 149, 86]`), Classic (`[240, 217, 181]` / `[181, 136, 99]`), and Wood (`[210, 165, 115]` / `[136, 84, 39]` with organic wood grain texture noise $\pm 14$ RGB).
+
+4. **Tier 4: Realistic Vukovic Attack Scenarios**:
+   - Colle System Greek Gift 1.Bxh7+! with highlight on origin d3 and target h7.
+   - Acceptance 1...Kxh7 with highlight on origin g8 and target h7.
+   - Vukovic Rook Lift Attack (Rd3-h3) along extreme files.
+
+### 6.3. Automated Performance Benchmark Suite (`hud/tests/benchmark.ts`)
+- Measures execution time of `recognize()` across 50 measured iterations after 10 warmup iterations per resolution.
+- Multi-resolution profiling:
+  * 384x384 (standard small)
+  * 512x512 (desktop native)
+  * 1024x1024 (Retina / high-DPI display)
+- Metrics captured: Min, Max, Average, P95 execution time.
+- Strict SLA Assertion: `avgTime < 25.0 ms` per 8x8 board.
+
+### 6.4. HUD Execution Commands
+```bash
+# Run CV Performance Benchmark Suite (50 iterations per resolution, <25ms assert)
+npx --prefix hud tsx tests/benchmark.ts
+
+# Run 4-Tier Highlight & Theme Tolerance Test Suite
+npx --prefix hud tsx tests/highlights.test.ts
+
+# Full HUD Regression Suite
+npm --prefix hud run typecheck
+npm --prefix hud test
+npm --prefix hud run test:raster
+npm --prefix hud run smoke
+```
+

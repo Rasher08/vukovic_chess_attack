@@ -1,6 +1,8 @@
 {
   "name": "nonchalant-local-hud",
-  "version": "0.1.0",
+  "version": "0.1.1",
+  "description": "Local chess position HUD for nonchalant",
+  "author": "Rasher08",
   "private": true,
   "main": "dist/main.cjs",
   "scripts": {
@@ -11,10 +13,13 @@
     "test": "tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/detector.test.ts",
     "smoke": "npm run build && electron . --hud-smoke",
     "test:raster": "electron tests/recognition.electron.cjs",
-    "dist:win": "npm run build && electron-builder --win portable nsis",
-    "dist:win-portable": "npm run build && electron-builder --win portable"
+    "test:game": "tsx tests/game-replay.test.ts",
+    "test:game:raster": "electron tests/game-raster.electron.cjs",
+    "dist:win": "npm run build && electron-builder --win portable nsis --x64 --publish never",
+    "dist:win-portable": "npm run build && electron-builder --win portable --x64 --publish never"
   },
   "build": {
+    "toolsets": { "nsis": "1.2.1" },
     "appId": "com.nonchalant.hud",
     "productName": "nonchalant HUD",
     "directories": {
@@ -22,6 +27,7 @@
     },
     "files": [
       "dist/**/*",
+      "!dist/stockfish/**/*",
       "package.json"
     ],
     "extraResources": [
@@ -44,10 +50,10 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "${productName}-${version}-setup.${ext}"
+      "artifactName": "nonchalant-HUD-${version}-setup.${ext}"
     },
     "portable": {
-      "artifactName": "${productName}-${version}-portable.${ext}"
+      "artifactName": "nonchalant-HUD-${version}-portable.${ext}"
     }
   },
   "devDependencies": {

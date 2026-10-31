@@ -1,6 +1,7 @@
 import type { HudState } from './core/controller';
 export type SourceMode = 'direct' | 'screen';
 export interface AppState extends HudState {
+  version: string;
   mode: SourceMode; sound: boolean; collapsed: boolean; movable: boolean;
   bridge: 'waiting' | 'connected' | 'conflict'; capturePermission: string;
 }

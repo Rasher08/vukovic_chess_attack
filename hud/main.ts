@@ -11,11 +11,12 @@ import type { AppState, SourceMode } from './types';
 
 app.setName('nonchalant HUD');
 const smoke = process.argv.includes('--hud-smoke');
+if (smoke) app.setPath('userData', path.join(app.getPath('temp'), `nonchalant-hud-smoke-${process.pid}`));
 if (!app.requestSingleInstanceLock()) app.quit();
 let controls: BrowserWindow;
 let overlay: BrowserWindow;
 let tray: Tray;
-let mode: SourceMode = 'direct';
+let mode: SourceMode = smoke || process.platform === 'darwin' ? 'direct' : 'screen';
 let sound = false, collapsed = false, movable = false, paused = false;
 let captureSource = '', screenSeen = 0;
 let bridgeStatus: AppState['bridge'] = 'waiting';
@@ -34,7 +35,7 @@ const controller = new HudController(
 const bridge = new BridgeReceiver(token, fen => { if (mode === 'direct') controller.accept(fen); });
 function state(): AppState {
   return { ...controller.state, mode, sound, collapsed, movable, bridge: bridgeStatus,
-    capturePermission: systemPreferences.getMediaAccessStatus('screen') };
+    version: app.getVersion(), capturePermission: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'not-required' };
 }
 function broadcast() {
   for (const win of [controls, overlay]) if (win && !win.isDestroyed()) win.webContents.send('hud:state', state());
@@ -89,7 +90,7 @@ void app.whenReady().then(async () => {
   controls = new BrowserWindow({ width: 960, height: 880, minWidth: 780, minHeight: 660, title: 'nonchalant · HUD', backgroundColor: '#17181b', webPreferences, show: false });
   const area = screen.getPrimaryDisplay().workArea;
   overlay = new BrowserWindow({ width: 292, height: 66, x: area.x + area.width - 316, y: area.y + 24, frame: false, transparent: true, resizable: false, hasShadow: false, alwaysOnTop: true, skipTaskbar: true, focusable: false, webPreferences, show: false });
-  overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  if (process.platform === 'darwin') overlay.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   overlay.setAlwaysOnTop(true, 'floating'); overlay.setIgnoreMouseEvents(true, { forward: true });
   for (const win of [controls, overlay]) {
     win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -104,7 +105,7 @@ void app.whenReady().then(async () => {
   controls.on('close', event => { if (!quitting) { event.preventDefault(); controls.hide(); } });
   overlay.on('closed', () => app.quit());
   const icon = nativeImage.createFromDataURL('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAANklEQVQ4T2NkoBAwUqifYdQABhYGBv5v3rz5z8jIyAhSg2kA0wBmG0CKQXzUMGDEBSM0DJUAAAFJMBHFh6VWAAAAAElFTkSuQmCC');
-  tray = new Tray(icon); tray.setTitle('!!'); tray.setToolTip('nonchalant HUD'); updateMenu();
+  tray = new Tray(icon); if (process.platform === 'darwin') tray.setTitle('!!'); tray.setToolTip('nonchalant HUD'); updateMenu();
   ipcMain.handle('hud:state', event => { if (!isApp(event)) throw Error('Unauthorized'); return state(); });
   ipcMain.handle('hud:token', event => { if (!isControls(event)) throw Error('Unauthorized'); return token; });
   ipcMain.handle('hud:copy-token', event => { if (!isControls(event)) throw Error('Unauthorized'); clipboard.writeText(token); });
@@ -146,7 +147,11 @@ void app.whenReady().then(async () => {
   globalShortcut.register('CommandOrControl+Shift+N', () => { if (controls && !controls.isDestroyed()) controls.webContents.send('hud:new-game'); });
   await controls.loadFile(path.join(__dirname, 'index.html'));
   await overlay.loadFile(path.join(__dirname, 'index.html'), { query: { overlay: '1' } });
-  server.listen(18319, '127.0.0.1');
+  await new Promise<void>(resolve => {
+    const unavailable = () => resolve();
+    server.once('error', unavailable);
+    server.listen(smoke ? 0 : 18319, '127.0.0.1', () => { server.removeListener('error', unavailable); resolve(); });
+  });
   setInterval(() => {
     if (mode === 'direct' && !serverFailed) { bridge.tick(); if (bridgeStatus !== bridge.status) { bridgeStatus = bridge.status; broadcast(); } }
     else if (Date.now() - screenSeen > 1800) controller.accept(null);
@@ -164,7 +169,7 @@ app.on('window-all-closed', () => app.quit());
 async function runSmoke() {
   const out = path.resolve(__dirname, '../test-results'); fs.mkdirSync(out, { recursive: true });
   const text = await controls.webContents.executeJavaScript('document.body.innerText');
-  if (!text.includes('Распознавание') || !text.includes('nonchalant')) throw Error('Settings did not render');
+  if (!text.includes('Доска на экране') || !text.includes('nonchalant')) throw Error('Settings did not render');
   fs.writeFileSync(path.join(out, 'settings.png'), (await controls.webContents.capturePage()).toPNG());
   for (const status of ['unknown', 'checking', 'checked', 'paused', 'error'] as const) {
     overlay.webContents.send('hud:state', { ...state(), status, idea: false });
@@ -176,7 +181,9 @@ async function runSmoke() {
   const fixture = 'r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15';
   let sequence = 0;
   const post = async (fen: string | null) => {
-    const response = await fetch('http://127.0.0.1:18319/position', {
+    const address = server.address();
+    if (!address || typeof address === 'string') throw Error('Smoke bridge did not start');
+    const response = await fetch(`http://127.0.0.1:${address.port}/position`, {
       method: 'POST', headers: { Origin: 'http://localhost:3000', 'Content-Type': 'application/json' },
       body: JSON.stringify({ token, session: 'hud-smoke-session', sequence: ++sequence, fen, orientation: 'white', sentAt: Date.now() }),
     });
@@ -198,5 +205,14 @@ async function runSmoke() {
   await controls.webContents.executeJavaScript("document.getElementById('screen-tab').click()");
   await controls.webContents.executeJavaScript('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))');
   fs.writeFileSync(path.join(out, 'screen-settings.png'), (await controls.webContents.capturePage()).toPNG());
-  console.log('HUD smoke PASS: native windows, all statuses, authenticated HTTP, real Stockfish, boolean-only HUD, immediate withdrawal. Screen permission: ' + systemPreferences.getMediaAccessStatus('screen'));
+  // Regression: persisted settings must survive a real renderer reload. Old
+  // initialization invoked the loader before its let bindings existed.
+  await controls.webContents.executeJavaScript(`
+    localStorage.setItem('nonchalant:hud:rect', JSON.stringify({x:10,y:20,size:512}));
+    localStorage.setItem('nonchalant:hud:orientation','black');
+  `);
+  await new Promise<void>(resolve => { controls.webContents.once('did-finish-load', () => resolve()); controls.webContents.reload(); });
+  const restored = await controls.webContents.executeJavaScript(`({orientation:document.getElementById('orientation').value, ready:!document.getElementById('region').disabled, known:document.getElementById('confirmed').checked})`);
+  if (restored.orientation !== 'black' || !restored.ready || restored.known) throw Error('Persisted screen setup lost or unconfirmed FEN trusted');
+  console.log('HUD smoke PASS: native windows, all statuses, authenticated HTTP, real Stockfish, boolean-only HUD, immediate withdrawal. Screen permission: ' + state().capturePermission);
 }

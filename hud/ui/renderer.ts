@@ -6,6 +6,8 @@ import type { AppState } from '../types';
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
 const overlayMode = new URLSearchParams(location.search).has('overlay');
+const isMac = navigator.platform.toLowerCase().includes('mac');
+const shortcut = (key: string) => isMac ? `⌘⇧${key}` : `Ctrl+Shift+${key}`;
 const labels = { unknown: 'Позиция не распознана', checking: 'Проверяется', checked: 'Проверено', paused: 'Пауза', error: 'Проверка не завершена' };
 let state: AppState;
 function renderState(value: AppState) {
@@ -16,11 +18,12 @@ function renderState(value: AppState) {
     document.body.classList.toggle('movable', state.movable);
     $('overlay').className = `${state.status}${state.idea ? ' idea' : ''}`;
     $('signal').textContent = state.idea ? 'Есть блестящая идея' : 'nonchalant';
-    $('status').textContent = state.movable ? 'Переместите · ⌘⇧M закрепить' : labels[state.status];
+    $('status').textContent = state.movable ? `Переместите · ${shortcut('M')} закрепить` : labels[state.status];
     $('mark').textContent = state.collapsed && state.status === 'checking' ? '··' : state.collapsed && state.status === 'unknown' ? '?' : state.collapsed && state.status === 'paused' ? 'Ⅱ' : '!!';
     return;
   }
   $('settings-status').textContent = labels[state.status];
+  $('version').textContent = state.version;
   $('pause').textContent = state.status === 'paused' ? 'Включить' : 'Пауза';
   $('collapse').textContent = state.collapsed ? 'Развернуть HUD' : 'Свернуть HUD';
   $('move').textContent = state.movable ? 'Закрепить HUD' : 'Переместить HUD';
@@ -31,12 +34,6 @@ function renderState(value: AppState) {
   if (switched || state.status === 'paused' && !wasPaused) resetTracking('Подтвердите позицию после смены источника или паузы.');
   if (switched && state.mode === 'direct') stopCapture();
 }
-
-if (overlayMode) {
-  document.body.classList.add('hud-mode'); $('overlay').hidden = false; $('settings').hidden = true;
-} else initializeControls();
-window.hud.onState(renderState);
-void window.hud.getState().then(renderState);
 
 const symbols: Record<string, string> = { K: '♔', Q: '♕', R: '♖', B: '♗', N: '♘', P: '♙', k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟', '.': '·' };
 let orientation: Orientation = 'white';
@@ -70,6 +67,7 @@ function loadSavedSettings() {
     const savedRect = localStorage.getItem('nonchalant:hud:rect');
     if (savedRect) {
       rect = JSON.parse(savedRect);
+      $('inspection').hidden = false;
       ($('region') as HTMLButtonElement).disabled = false;
       $('recognition-status').textContent = 'Область доски загружена. Выберите экран для запуска.';
     }
@@ -83,32 +81,31 @@ function loadSavedSettings() {
   } catch {}
 }
 function startNewGame() {
+  // Clicking this control explicitly confirms a standard new game. A familiar
+  // arrangement alone never authorizes resetting turn, rights or move counters.
+  tracker.invalidate(); manual = null; window.hud.screenPosition(null);
   try {
     const initialFen = new Chess().fen();
     const image = frame();
+    if (!image || !stable || !gate.observe(image).stable) throw Error('Дождитесь устойчивого кадра начальной позиции.');
     if (!templates) {
-      if (image && stable) {
-        try {
-          templates = calibrate(image, initialFen, orientation);
-          saveSettings();
-          message('Фигуры успешно обучены по начальной позиции!');
-        } catch {
-          message('Для первой калибровки убедитесь, что на экране видна вся стартовая позиция.');
-          return;
-        }
-      } else {
-        message('Сначала выберите экран и дождитесь устойчивого кадра стартовой доски.');
-        return;
-      }
+      loadFen(initialFen);
+      $('calibration-review').hidden = false;
+      ($('advanced-fen') as HTMLDetailsElement).open = false;
+      message('Сравните фигуры справа с кадром слева и нажмите «Всё совпадает — запомнить».');
+      return;
     }
+    const recognized = recognize(image, templates, orientation);
+    if (!recognized.confident || recognized.placement !== initialFen.split(' ')[0]) throw Error('На кадре не подтверждена начальная позиция. Используйте ручной FEN или обновите калибровку.');
     tracker.seed(initialFen);
     manual = null;
     editing = false;
+    lastFingerprint = ''; // Revalidate even when the board pixels did not change.
     input('confirmed').checked = true;
     updateMetadata(initialFen);
     saveSettings();
     $('recognition-status').textContent = 'Партия начата: следим за ходами с 1-го хода.';
-    message('🟢 Новая партия активна! Сделайте первый ход.');
+    message('Готово. Можете играть и закрыть окно настроек.');
     window.hud.screenPosition(initialFen);
   } catch (error) {
     message(error instanceof Error ? error.message : 'Не удалось начать партию.');
@@ -117,6 +114,7 @@ function startNewGame() {
 function resetTracking(reason: string) {
   tracker.invalidate(); gate.reset(); manual = null; stable = false; lastFingerprint = ''; editing = false;
   input('confirmed').checked = false;
+  $('calibration-review').hidden = true;
   for (const id of ['turn', 'castling', 'ep', 'halfmove', 'fullmove']) input(id).value = '';
   window.hud.screenPosition(null); $('recognition-status').textContent = reason;
 }
@@ -157,19 +155,6 @@ function scan() {
         window.hud.screenPosition(null); return;
       }
 
-      // Auto-detect new game if initial placement is observed
-      const initialPlacement = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
-      if (result.placement === initialPlacement && (!tracker.currentFen || tracker.isGameOver || tracker.currentFen.split(' ')[0] !== initialPlacement)) {
-        const initFen = new Chess().fen();
-        tracker.seed(initFen);
-        updateMetadata(initFen);
-        input('confirmed').checked = true;
-        $('recognition-status').textContent = 'Обнаружена новая партия: отслеживание начато с 1-го хода.';
-        message('🟢 Обнаружена новая партия: следим за ходами.');
-        window.hud.screenPosition(initFen);
-        return;
-      }
-
       const next = tracker.observe(result.placement);
       $('recognition-status').textContent = next.fen ? 'Фигуры распознаны. Метаданные отслеживаются.' : next.reason || 'Подтвердите FEN или нажмите «🟢 Новая партия».';
       if (next.fen) updateMetadata(next.fen);
@@ -208,6 +193,8 @@ function updateMetadata(fen: string) {
 }
 function loadFen(raw: string) {
   const fen = validateTrustedFen(raw); beginEdit(); cells.clear();
+  $('inspection').hidden = false;
+  $('position-check').hidden = false;
   new Chess(fen).board().flat().forEach(p => { if (p) cells.set(p.square, p.color === 'w' ? p.type.toUpperCase() : p.type); });
   updateMetadata(fen); drawEditor();
 }
@@ -220,11 +207,12 @@ function confirmPosition(training: boolean) {
     const image = frame(); if (!image || !stable) throw Error('Дождитесь устойчивого кадра выбранной доски.');
     const observation = gate.observe(image); if (!observation.stable || observation.changed) throw Error('Кадр изменился. Проверьте новую позицию.');
     const fen = confirmedFen();
-    if (training) templates = calibrate(image, fen, orientation);
+    if (training) { templates = calibrate(image, fen, orientation); saveSettings(); }
     else if (!templates) throw Error('Сначала обучите фигуры на начальной позиции этой темы.');
     tracker.seed(fen); manual = { fingerprint: observation.fingerprint, fen }; editing = false; lastFingerprint = observation.fingerprint;
     updateMetadata(fen); message(training ? 'Фигуры обучены. Текущая позиция подтверждена.' : 'Позиция подтверждена. Отслеживание включено.');
     $('recognition-status').textContent = 'Позиция подтверждена вручную.';
+    $('calibration-review').hidden = true;
     window.hud.screenPosition(tracker.isGameOver ? null : fen);
   } catch (error) { message(error instanceof Error ? error.message : 'Не удалось подтвердить позицию.'); window.hud.screenPosition(null); }
 }
@@ -240,12 +228,12 @@ async function chooseScreens() {
 }
 async function capture(id: string) {
   try {
-    stopCapture();
+    stopCapture(); resetTracking('Источник экрана изменён. Подтвердите текущую позицию.');
     await window.hud.selectSource(id);
-    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 5, max: 5 } }, audio: false });
+    stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 30, max: 30 } }, audio: false });
     const video = $<HTMLVideoElement>('capture-video'); video.srcObject = stream; await video.play();
     stream.getVideoTracks()[0].addEventListener('ended', () => { stopCapture(); resetTracking('Захват экрана завершён.'); });
-    $('sources').replaceChildren(); $('capture-status').textContent = 'Захват включён · 5 кадров/с'; ($('region') as HTMLButtonElement).disabled = false;
+    $('sources').replaceChildren(); $('capture-status').textContent = 'Захват включён · 30 кадров/с'; ($('region') as HTMLButtonElement).disabled = false;
     if (!rect) showPicker();
     else message('Захват активен с сохранённой областью. Нажмите «🟢 Начать новую партию».');
   } catch { message('Не удалось начать захват. Проверьте разрешение записи экрана и перезапустите HUD.'); }
@@ -253,6 +241,7 @@ async function capture(id: string) {
 function showPicker() {
   const video = $<HTMLVideoElement>('capture-video'); if (!video.videoWidth) return;
   picking = true; proposed = null; resetTracking('Выберите точный квадрат доски.');
+  templates = null; localStorage.removeItem('nonchalant:hud:templates');
   const canvas = $<HTMLCanvasElement>('screen-preview'); canvas.width = video.videoWidth; canvas.height = video.videoHeight;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!; ctx.drawImage(video, 0, 0);
   screenSnapshot = ctx.getImageData(0, 0, canvas.width, canvas.height); $('picker').hidden = false;
@@ -270,6 +259,15 @@ function initializeControls() {
   $('choose').onclick = () => { void chooseScreens(); };
   $('region').onclick = showPicker;
   $('new-game').onclick = startNewGame;
+  $('confirm-start').onclick = () => { input('confirmed').checked = true; confirmPosition(true); };
+  $('correct-start').onclick = () => { ($('advanced-fen') as HTMLDetailsElement).open = true; message('Выберите фигуру в палитре и нажмите клетку для исправления.'); };
+  $('advanced-fen').addEventListener('toggle', () => {
+    if (($('advanced-fen') as HTMLDetailsElement).open) $('position-check').hidden = false;
+  });
+  $('shortcuts').textContent = `${shortcut('P')} — пауза · ${shortcut('H')} — свернуть · ${shortcut('M')} — переместить · ${shortcut('N')} — новая партия`;
+  $('capture-help').textContent = isMac
+    ? 'Если захват недоступен: Системные настройки → Конфиденциальность и безопасность → Запись экрана и системного аудио. Разрешите Electron и перезапустите HUD.'
+    : 'Выделяйте только доску. Окно HUD и настройки держите за её пределами. При смене размера доски заново выберите область и обучите фигуры.';
   window.hud.onNewGame?.(startNewGame);
   loadSavedSettings();
   input('orientation').onchange = () => { orientation = input('orientation').value as Orientation; resetTracking('Ориентация изменена. Нажмите «🟢 Новая партия».'); saveSettings(); drawEditor(); };
@@ -292,6 +290,7 @@ function initializeControls() {
   $('use-region').onclick = () => {
     if (!proposed || proposed.size < 256) { message('Выделите доску размером не менее 256 × 256 пикселей.'); return; }
     rect = proposed; picking = false; $('picker').hidden = true; gate.reset();
+    $('inspection').hidden = false;
     saveSettings();
     message('Область доски сохранена! Откройте стартовую позицию и нажмите «🟢 Начать новую партию».');
   };
@@ -300,6 +299,15 @@ function initializeControls() {
   });
   // Defer initial drawing until const/let declarations above have initialized.
   queueMicrotask(() => { drawEditor(); drawPalette(); });
-  setInterval(scan, 250);
+  setInterval(scan, 70);
   window.addEventListener('beforeunload', () => { stopCapture(); window.hud.screenPosition(null); });
 }
+
+// Initialize only after all persisted state bindings have been initialized.
+// Calling loadSavedSettings earlier hit the temporal dead zone and silently
+// discarded saved calibration and board coordinates.
+if (overlayMode) {
+  document.body.classList.add('hud-mode'); $('overlay').hidden = false; $('settings').hidden = true;
+} else initializeControls();
+window.hud.onState(renderState);
+void window.hud.getState().then(renderState);

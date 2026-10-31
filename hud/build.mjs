@@ -9,6 +9,7 @@ for (const name of ['main', 'preload']) {
 }
 await build({ absWorkingDir: here, entryPoints: ['ui/renderer.ts'], outfile: 'dist/renderer.js', bundle: true, platform: 'browser', format: 'iife', target: 'chrome140' });
 for (const file of ['index.html', 'style.css']) await cp(path.join(here, 'ui', file), path.join(here, 'dist', file));
+await cp(path.join(here, 'QUICKSTART-WINDOWS.txt'), path.join(here, 'dist', 'QUICKSTART-WINDOWS.txt'));
 const stockfishBin = path.resolve(here, '../node_modules/stockfish/bin');
 const distStockfish = path.join(here, 'dist', 'stockfish');
 await mkdir(distStockfish, { recursive: true });

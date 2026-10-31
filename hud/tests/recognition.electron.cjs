@@ -75,13 +75,15 @@ app.whenReady().then(async () => {
   const scaled = await raster(game.fen(), 'white', { size: 640 });
   const debugOutput = path.join(__dirname, '..', 'test-results'); fs.mkdirSync(debugOutput, { recursive: true });
   fs.writeFileSync(path.join(debugOutput, 'recognition.png'), (await win.webContents.capturePage()).toPNG());
-  check(scaled, templates, game.fen(), 'white', 'Board scale changes from 512 to 640');
+  assert.throws(() => recognize(scaled, templates, 'white'), /Масштаб/, 'Changed raster scale needs fresh calibration');
+  const scaledTemplates = calibrate(await raster(initial, 'white', { size: 640 }), initial, 'white');
+  check(scaled, scaledTemplates, game.fen(), 'white', 'Fresh calibration at scale 640');
   const broken = recognize(await raster(game.fen(), 'white', { broken: 'g1' }), templates, 'white');
   assert.equal(broken.confident, false, 'An overlay over a piece fails closed');
   assert.equal(broken.placement, null);
   await raster(game.fen(), 'black');
   const output = path.join(__dirname, '..', 'test-results'); fs.mkdirSync(output, { recursive: true });
   fs.writeFileSync(path.join(output, 'recognition.png'), (await win.webContents.capturePage()).toPNG());
-  console.log('Actual SVG raster checks passed: both orientations, notation, moves, highlights, scaling, occlusion.');
+  console.log('Actual SVG raster checks passed: both orientations, notation, moves, highlights, scale invalidation/recalibration, occlusion.');
   clearTimeout(timeout); app.exit(0);
 }).catch(error => { console.error(error); clearTimeout(timeout); app.exit(1); });
