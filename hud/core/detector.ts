@@ -1,5 +1,5 @@
 import { Chess } from 'chess.js';
-import { inspectSacrifice, verifyBrilliantMove, type SacrificeCandidate } from '../../src/lib/brilliantMove';
+import { inspectSoundSacrifice, verifySoundSacrifice, type SacrificeCandidate } from '../../src/lib/brilliantMove';
 import { BrowserChessEngine, type BrowserEngineAnalysis, type BrowserEngineSearchOptions } from '../../src/lib/browserEngine';
 
 export class IncompleteAnalysisError extends Error {
@@ -27,7 +27,7 @@ function sound(best: BrowserEngineAnalysis['score'], chosen: BrowserEngineAnalys
   if (!best || !chosen) return false;
   if (best.kind === 'mate') return best.value > 0 && chosen.kind === 'mate' && chosen.value > 0;
   if (chosen.kind === 'mate') return chosen.value > 0;
-  return chosen.value >= -35 && best.value - chosen.value <= 40;
+  return chosen.value >= 0 && best.value - chosen.value <= 40;
 }
 
 /** Compare the opponent's independent full search with the offer's root score. */
@@ -35,18 +35,18 @@ function defenseHolds(chosen: NonNullable<BrowserEngineAnalysis['score']>, defen
   const ours = { kind: defense.kind, value: -defense.value };
   if (chosen.kind === 'mate') return chosen.value > 0 && ours.kind === 'mate' && ours.value > 0;
   if (ours.kind === 'mate') return ours.value > 0;
-  return ours.value >= Math.max(-35, chosen.value - 80);
+  return ours.value >= Math.max(0, chosen.value - 80);
 }
 
 /**
- * Finds at most three promising *sacrifices*, then reuses nonchalant verification.
+ * Finds at most three promising material offers, then verifies compensation.
  * MultiPV is a candidate generator, never evidence sufficient for a notification.
  * Only the boolean leaves this module. Callers must not display internal errors,
  * engine lines, candidates or reasons. A false result means this bounded check
  * found no confirmed candidate, not a mathematical proof that none exists.
  * The caller owns one engine per job and must recreate it after abort/failure.
  */
-export async function detectBrilliant(
+export async function detectSacrifice(
   fen: string,
   engine: BrowserChessEngine,
   signal: AbortSignal,
@@ -93,7 +93,7 @@ export async function detectBrilliant(
     if (typeof fen !== 'string' || fen.trim().split(/\s+/).length !== 6) throw new IncompleteAnalysisError('Нужен полный FEN.');
     const board = new Chess(fen);
     if (board.isGameOver()) return { brilliant: false };
-    const candidates = legalMoves(board.fen()).map(move => inspectSacrifice(board.fen(), move)).filter((c): c is SacrificeCandidate => c !== null);
+    const candidates = legalMoves(board.fen()).map(move => inspectSoundSacrifice(board.fen(), move)).filter((c): c is SacrificeCandidate => c !== null);
     check();
     if (!candidates.length) return { brilliant: false };
     const ranked = await analyze(board.fen(), { searchMoves: candidates.map(c => c.uci), multiPv: Math.min(3, candidates.length), nodes: nodes * 2 });
@@ -102,7 +102,7 @@ export async function detectBrilliant(
     for (const line of lines) {
       check();
       // Ranking only selects work. A MultiPV score at a different search budget
-      // must not veto the website's shared verification of that candidate.
+      // must not veto the Tal profile's independent verification of a candidate.
       if (line.depth < 12) continue;
       const candidate = candidates.find(c => c.uci === line.bestMove);
       if (!candidate) throw new IncompleteAnalysisError('Ответ движка не соответствует кандидатам.');
@@ -112,12 +112,11 @@ export async function detectBrilliant(
       for (const depth of [20, 22]) {
         const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, depth);
         const before = await deepAnalyze(board.fen());
-        // HUD deliberately accepts only the actual best sacrifice at BOTH
-        // depths. A merely near-best equal tactic is not enough to interrupt.
-        if (before.bestMove !== candidate.uci) { confirmed = false; break; }
-        const chosen = before;
+        // Tal accepts a sound offer even when another move ranks first. The
+        // exact same candidate must hold up at both independent search depths.
+        const chosen = before.bestMove === candidate.uci ? before : await deepAnalyze(board.fen(), { searchMoves: [candidate.uci] });
         if (!sound(before.score, chosen.score)) { confirmed = false; break; }
-        const verified = await verifyBrilliantMove(candidate, before, chosen, { analyze: deepAnalyze }, { nodes, signal });
+        const verified = await verifySoundSacrifice(candidate, before, chosen, { analyze: deepAnalyze }, { nodes, signal });
         check();
         // The shared verifier swallows search errors; keep them incomplete.
         if (failure) throw failure;
@@ -139,3 +138,8 @@ export async function detectBrilliant(
     signal.removeEventListener('abort', cancel);
   }
 }
+
+/** Legacy name and boolean field retained for controller/bridge compatibility.
+ * They now report Tal's sound-sacrifice profile, not a brilliant-move award.
+ */
+export const detectBrilliant = detectSacrifice;

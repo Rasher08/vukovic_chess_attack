@@ -1,17 +1,23 @@
 <!doctype html>
 <html lang="ru"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob: data:; connect-src 'none'; object-src 'none'; base-uri 'none'">
-<title>nonchalant · HUD</title><link rel="stylesheet" href="style.css"></head>
+<title>Tal HUD Mentality</title><link rel="stylesheet" href="style.css"></head>
 <body>
-<div id="overlay" hidden><div id="mark">!!</div><div id="overlay-copy"><div id="signal">nonchalant</div><div id="status">Позиция не распознана</div></div></div>
+<div id="overlay" hidden><div id="mark">♞</div><div id="overlay-copy"><div id="signal">Tal HUD Mentality</div><div id="status">Позиция не распознана</div></div></div>
 <main id="settings">
-  <header><div><span class="wordmark">nonchalant <b>!!</b> <span id="version" class="version"></span></span><h1>Настройка HUD</h1><p>Выберите доску. Дальше HUD работает в фоне.</p></div><span class="local">● Всё на вашем компьютере</span></header>
+  <header><div><span class="wordmark">Tal HUD Mentality <b>♞</b> <span id="version" class="version"></span></span><h1>Найти жертву. Рассчитать самому.</h1><p>Корректные жертвы с достаточной компенсацией. Без показа хода.</p></div><span class="local">● Всё на вашем компьютере</span></header>
   <div class="toolbar"><span id="settings-status">Позиция не распознана</span><button id="pause">Пауза</button><button id="collapse">Свернуть HUD</button><button id="move">Переместить HUD</button><label class="sound"><input id="sound" type="checkbox"> Звук</label></div>
   <details id="sound-panel" class="sound-panel">
     <summary>Звук уведомления <span id="sound-name">Стандартный сигнал</span></summary>
-    <div class="row"><button id="choose-sound">Выбрать аудио…</button><button id="preview-sound">Прослушать</button><button id="stop-sound">Стоп</button><button id="reset-sound">Стандартный сигнал</button></div>
-    <div class="row sound-options"><label for="sound-volume">Громкость <input id="sound-volume" type="range" min="0" max="100" step="1" value="35"><output id="sound-volume-value" for="sound-volume">35%</output></label><label>Длительность <select id="sound-duration"><option value="3">3 сек</option><option value="5" selected>5 сек</option><option value="10">10 сек</option><option value="20">20 сек</option><option value="30">30 сек</option></select></label></div>
-    <p class="note">Своя фраза или музыка: MP3, WAV, OGG, M4A, AAC, FLAC до 12 МБ. Играет с начала, один раз при сигнале. Файл и настройки сохраняются. Чтобы включить уведомления со звуком, отметьте «Звук» выше.</p>
+    <div class="row"><button id="choose-sound">Добавить свои файлы…</button><button id="preview-sound">Прослушать</button><button id="stop-sound">Стоп</button><button id="reset-sound">Стандартный сигнал</button></div>
+    <div class="row sound-library">
+      <label>Воспроизведение <select id="sound-selection"><option value="selected">Выбранный трек</option><option value="random">Случайный трек</option></select></label>
+      <label class="sound-track-label">Трек <select id="sound-track" aria-label="Выбранный аудиотрек"><option value="">Стандартный сигнал</option></select></label>
+      <button id="remove-sound" disabled>Удалить выбранный</button>
+    </div>
+    <div class="row sound-options"><label for="sound-volume">Громкость <input id="sound-volume" type="range" min="0" max="100" step="1" value="35"><output id="sound-volume-value" for="sound-volume">35%</output></label><label>Длительность <select id="sound-length"><option value="limited">Заданное время</option><option value="full">До конца трека</option></select></label><label id="sound-seconds-label">Секунды <input id="sound-duration" type="number" min="1" max="600" step="1" value="5" inputmode="numeric"></label></div>
+    <label class="sound-stop-policy"><input id="sound-stop-on-move" type="checkbox" checked> Останавливать музыку после сделанного хода</label>
+    <p class="note">Добавьте свои MP3, WAV, OGG, M4A, AAC или FLAC: до 20 файлов, до 12 МБ каждый, всего до 120 МБ. Случайный трек выбирается при каждом уведомлении. Остановка после хода прерывает и режим «До конца трека»; пауза, выключение звука и потеря источника всегда останавливают музыку. Библиотека и настройки сохраняются. Для уведомлений включите «Звук» выше.</p>
     <p id="sound-message" class="note" role="status"></p>
   </details>
   <nav><button id="moves-tab" class="active">Ходы Chess.com</button><button id="direct-tab">Из nonchalant</button><button id="screen-tab">Доска на экране</button></nav>
@@ -50,7 +56,7 @@
     <div id="inspection" class="inspection" hidden><div><h3>Кадр доски</h3><canvas id="board-preview" width="256" height="256"></canvas></div><div id="position-check" hidden><h3>Проверьте фигуры</h3><div id="editor" aria-label="Распознанная доска"></div><div id="palette" aria-label="Выбор фигуры"></div></div></div>
     <p id="recognition-status" class="note">Область ещё не выбрана.</p>
     <div id="calibration-review" class="calibration-review" hidden><p>Сравните кадр и фигуры справа. Указанный цвет должен быть снизу.</p><div class="row"><button id="confirm-start" class="primary">Всё совпадает — запомнить</button><button id="correct-start">Исправить</button></div></div>
-    <h3 class="step"><span>3</span> Играйте и считайте самостоятельно</h3><p class="note">Подтверждённая идея появится в маленьком HUD. Окно настроек можно закрыть — работа продолжится.</p>
+    <h3 class="step"><span>3</span> Играйте и считайте самостоятельно</h3><p class="note">Сигнал «Есть сильная жертва» появится в маленьком HUD. Окно настроек можно закрыть — работа продолжится.</p>
     <details id="advanced-fen">
       <summary>Позиция и ручная проверка</summary>
       <div style="margin-top: 12px;">
@@ -66,6 +72,6 @@
   </section>
   <details class="info"><summary>Если сигнал выглядит ошибочным</summary><p>Диагностика содержит позиции последних восьми сигналов и версию HUD. Ходы движка, оценки и ключ подключения в неё не входят. Данные копируются только по нажатию; автоматической отправки нет.</p><button id="copy-diagnostics">Скопировать диагностику</button></details>
   <p id="message" role="status"></p>
-  <footer><span id="shortcuts"></span><p>Закреплённый HUD пропускает все клики. «Проверено» означает, что ограниченная проверка завершена; отсутствие сигнала не доказывает отсутствие идеи. Совпадение со значком Chess.com не гарантируется.</p></footer>
+  <footer><span id="shortcuts"></span><p>Закреплённый HUD пропускает все клики. «Проверено» означает, что ограниченная проверка завершена; отсутствие сигнала не доказывает отсутствие идеи. Сигнал означает проверенную по оценке движка жертву с достаточной компенсацией, а не значок «!!» Chess.com.</p></footer>
 </main><video id="capture-video" muted hidden></video><script src="renderer.js"></script>
 </body></html>

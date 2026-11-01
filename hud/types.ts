@@ -17,11 +17,14 @@ export interface HudAPI {
   sources(): Promise<{ id: string; name: string; thumbnail: string }[]>;
   selectSource(id: string): Promise<void>;
   screenPosition(fen: string | null, issue?: ScreenIssue): void;
-  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; collapsed?: boolean; movable?: boolean }): Promise<void>;
+  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; stopOnMove?: boolean; selection?: 'selected' | 'random'; selectedId?: string | null; collapsed?: boolean; movable?: boolean }): Promise<void>;
   chooseSound(): Promise<SoundChoice | null>;
+  chooseSounds(): Promise<SoundChoice[]>;
   confirmSound(id: string): Promise<void>;
+  discardSound(id: string): Promise<void>;
+  removeSound(id: string): Promise<void>;
   resetSound(): Promise<void>;
-  readSound(): Promise<SoundAsset | null>;
+  readSound(id?: string): Promise<SoundAsset | null>;
   openSettings(): void;
   copyToken(): Promise<void>;
   copyDiagnostics(): Promise<void>;

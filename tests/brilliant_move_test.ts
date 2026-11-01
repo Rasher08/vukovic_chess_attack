@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
 import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
+import { readFileSync } from 'node:fs';
 import { inspectSacrifice, verifyBrilliantMove, type SacrificeCandidate } from '../src/lib/brilliantMove';
 import type { EngineLike, EngineResult } from '../src/lib/autoTraining';
 import { BrowserChessEngine } from '../src/lib/browserEngine';
@@ -84,7 +85,7 @@ function rotateAndSwap(fen: string): string {
   const expanded = parts[0].split('/').join('').replace(/[1-8]/g, digit => '.'.repeat(Number(digit)));
   const swapped = expanded.split('').reverse().map(piece => piece === '.' ? '.' : piece === piece.toUpperCase() ? piece.toLowerCase() : piece.toUpperCase()).join('');
   const rows = Array.from({ length: 8 }, (_, index) => swapped.slice(index * 8, index * 8 + 8).replace(/\.+/g, empty => String(empty.length)));
-  return `${rows.join('/')} b - - 0 15`;
+  return `${rows.join('/')} ${parts[1] === 'w' ? 'b' : 'w'} - - 0 15`;
 }
 
 async function run() {
@@ -105,12 +106,19 @@ async function run() {
   assert.equal((await verifyBrilliantMove(greek, baseline(greek), baseline(greek), fakeEngine(greek, { depth: 8 }).engine, { nodes: 600_000 })).brilliant, false, 'Unresolved shallow analysis is insufficient');
 
   const easyWin = fakeEngine(queen, { best: mate(2), alternative: cp(700), accepted: mate(1) });
-  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), easyWin.engine, { nodes: 600_000 })).brilliant, false, 'If another ordinary move also wins easily, suppress !!');
-  assert.equal(easyWin.calls.length, 2);
+  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), easyWin.engine, { nodes: 600_000 })).brilliant, true, 'A legally proven mate-in-two sacrifice qualifies despite another winning move');
+  assert.equal(easyWin.calls.length, 3, 'The material acceptance remains mandatory after the legal mate proof');
   const onlyWin = fakeEngine(queen, { best: mate(2), alternative: cp(0), accepted: mate(1) });
   assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), onlyWin.engine, { nodes: 600_000 })).brilliant, true, 'A unique mating sacrifice is not excluded merely because best score is mate');
   assert(onlyWin.calls[1].searchMoves!.every(move => move !== queen.uci));
-  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), fakeEngine(queen, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, false);
+  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(2)), baseline(queen, mate(2)), fakeEngine(queen, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, true, 'A slower alternative mate does not erase a proven mating sacrifice');
+  assert.equal((await verifyBrilliantMove(queen, baseline(queen, mate(1)), baseline(queen, mate(2)), fakeEngine(queen, { best: mate(1), chosen: mate(2), alternative: mate(1), accepted: mate(1), bestIsDifferent: true }).engine, { nodes: 600_000 })).brilliant, false, 'Do not award a delayed sacrifice when an immediate mate was available');
+  assert.equal((await verifyBrilliantMove(greek, baseline(greek, mate(2)), baseline(greek, mate(2)), fakeEngine(greek, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, false, 'A fabricated mate score cannot replace checking every legal defense');
+  const drawingOffer = inspectSacrifice('k7/8/1Q6/8/8/8/8/K7 w - - 0 1', 'b6b7')!;
+  assert(drawingOffer);
+  assert(new Chess(drawingOffer.acceptances[0].fenAfterAcceptance).isDraw());
+  assert.equal((await verifyBrilliantMove(drawingOffer, baseline(drawingOffer, mate(2)), baseline(drawingOffer, mate(2)), fakeEngine(drawingOffer, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, false, 'An acceptance that draws cannot be a mating proof');
+  assert.equal(inspectSacrifice('7k/5Q2/6K1/8/8/8/8/8 w - - 0 1', 'f7e6'), null, 'A stalemating offer is not a sound mating sacrifice');
 
   const significant = fakeEngine(greek, { best: cp(500), alternative: cp(350), accepted: cp(510) });
   assert.equal((await verifyBrilliantMove(greek, baseline(greek, cp(500)), baseline(greek, cp(500)), significant.engine, { nodes: 600_000 })).brilliant, true, 'A substantially weaker winning alternative does not automatically disqualify a sound sacrifice');
@@ -155,8 +163,38 @@ async function run() {
     const traces: unknown[] = [];
     const traced: EngineLike = { async analyze(fen, options) { const response = await real.analyze(fen, options); traces.push({ type: fen === queen.fenBefore ? options?.searchMoves ? 'alternative/forced' : 'root' : 'acceptance', bestMove: response.bestMove, score: response.score, depth: response.depth }); return response; } };
     const actual = await verifyBrilliantMove(queen, best, played, traced, { nodes: 600000 });
-    assert.equal(actual.brilliant, false, 'Morphy Qb8+ is not labelled by this conservative criterion when Qb7 also retains a clear engine advantage');
+    assert.equal(actual.brilliant, true, 'Morphy Qb8+ has the same general legal mate-in-two proof even when Qb7 also wins');
+    assert.match(actual.reason!, /Полный перебор легальных защит/);
     assert(traces.length >= 2);
+    const reportedGame = new Chess();
+    reportedGame.loadPgn(readFileSync(new URL('fixtures/brilliant-konoxa-2026-11-01.pgn', import.meta.url), 'utf8'));
+    const reportedPly = reportedGame.history({ verbose: true })[57];
+    assert.equal(reportedPly.san, 'Qg1+');
+    assert.equal(Number(reportedPly.before.split(' ')[5]), 29);
+    const reported = inspectSacrifice(reportedPly.before, 'd4g1')!;
+    assert(reported && reported.learner === 'b');
+    assert.equal(reported.acceptances[0].san, 'Rxg1');
+    assert.equal(reported.acceptances[0].investmentCp, 400, 'Conservative investment accounts for possible Nxg1, even though the actual continuation mates with Nf2');
+    const afterOffer = new Chess(reported.fenAfterMove);
+    assert.deepEqual(afterOffer.moves(), ['Rxg1']);
+    afterOffer.move('Rxg1'); afterOffer.move('Nf2#');
+    assert(afterOffer.isCheckmate());
+    for (const candidate of [reported, inspectSacrifice(rotateAndSwap(reported.fenBefore), 'e5b8')!]) {
+      assert(candidate, 'The reported mating idea works for both colors');
+      const base = await real.analyze(candidate.fenBefore, { nodes: 200_000 });
+      const chosen = base.bestMove === candidate.uci ? base : await real.analyze(candidate.fenBefore, { nodes: 200_000, searchMoves: [candidate.uci] });
+      const verified = await verifyBrilliantMove(candidate, base, chosen, real, { nodes: 600_000 });
+      assert.equal(verified.brilliant, true, 'The actual engine and exhaustive legal-defense proof recognize the reported sacrifice');
+      assert.match(verified.reason!, /Полный перебор легальных защит/);
+    }
+    assert.equal(inspectSacrifice(reported.fenBefore.replace('8 29', '99 29'), reported.uci), null, 'A claimable fifty-move draw after the quiet offer prevents a false mating claim');
+    const escapeFen = reported.fenBefore.replace('PP1N2BP', 'PP1N2B1');
+    const escapable = inspectSacrifice(escapeFen, reported.uci)!;
+    assert(escapable);
+    const escapeLine = new Chess(escapable.fenAfterMove); escapeLine.move('Rxg1'); escapeLine.move('Nf2+');
+    assert(escapeLine.moves().includes('Kh2'), 'An extra defensive king square refutes the apparent smothered mate');
+    assert.equal((await verifyBrilliantMove(escapable, baseline(escapable, mate(2)), baseline(escapable, mate(2)), fakeEngine(escapable, { best: mate(2), alternative: mate(5), accepted: mate(1) }).engine, { nodes: 600_000 })).brilliant, false, 'Even plausible mate scores cannot hide a legal escape in the otherwise identical mating pattern');
+
     const greekBest = await real.analyze(greek.fenBefore, { nodes: 200000 });
     const greekPlayed = greekBest.bestMove === greek.uci ? greekBest : await real.analyze(greek.fenBefore, { nodes: 200000, searchMoves: [greek.uci] });
     const greekTraces: unknown[] = [];
@@ -165,7 +203,7 @@ async function run() {
     assert.equal(actualGreek.brilliant, true, 'The actual bundled WASM verifies Lasker Bxh7+, its alternatives and Kxh7 acceptance');
     assert.match(actualGreek.reason!, /Bxh7\+/);
     assert(greekTraces.length >= 3);
-    console.log('PASS actual bundled WASM: Lasker Bxh7+ is verified; Morphy Qb8+ is conservatively suppressed because Qb7 also keeps a clear advantage.');
+    console.log('PASS actual bundled WASM: Lasker Bxh7+, Morphy Qb8+ and Konoxa Qg1+ (both colors) verified with legal mating proofs where applicable.');
   } finally { real.dispose(); }
 }
 

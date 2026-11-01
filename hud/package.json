@@ -1,7 +1,7 @@
 {
   "name": "nonchalant-local-hud",
-  "version": "0.1.4",
-  "description": "Local chess position HUD for nonchalant",
+  "version": "0.1.7",
+  "description": "Tal HUD Mentality — correct chess sacrifices with compensation",
   "author": "Rasher08",
   "private": true,
   "main": "dist/main.cjs",
@@ -10,7 +10,7 @@
     "build": "node build.mjs",
     "start": "npm run build && electron .",
     "typecheck": "tsc --project tsconfig.json",
-    "test": "tsx tests/soundStore.test.ts && tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/depthGate.test.ts && tsx tests/detector.test.ts",
+    "test": "tsx tests/soundStore.test.ts && tsx tests/soundPlayer.test.ts && tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/depthGate.test.ts && tsx tests/detector.test.ts",
     "test:sound": "npm run build && electron . --hud-sound-smoke",
     "test:moves": "npm run build && electron tests/moves.electron.cjs",
     "smoke": "npm run build && electron . --hud-smoke",
@@ -22,9 +22,11 @@
     "dist:win-portable": "npm run build && electron-builder --win portable --x64 --publish never"
   },
   "build": {
-    "toolsets": { "nsis": "1.2.1" },
+    "toolsets": {
+      "nsis": "1.2.1"
+    },
     "appId": "com.nonchalant.hud",
-    "productName": "nonchalant HUD",
+    "productName": "Tal HUD Mentality",
     "directories": {
       "output": "release"
     },
@@ -35,7 +37,13 @@
       "package.json"
     ],
     "extraResources": [
-      { "from": "dist/browser-extension", "to": "browser-extension", "filter": ["*"] },
+      {
+        "from": "dist/browser-extension",
+        "to": "browser-extension",
+        "filter": [
+          "*"
+        ]
+      },
       {
         "from": "dist/stockfish",
         "to": "stockfish",
@@ -48,17 +56,20 @@
       "target": [
         "portable",
         "nsis"
-      ]
+      ],
+      "executableName": "Tal HUD Mentality"
     },
     "nsis": {
       "oneClick": true,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "artifactName": "nonchalant-HUD-${version}-setup.${ext}"
+      "artifactName": "Tal-HUD-Mentality-${version}-setup.${ext}",
+      "shortcutName": "Tal HUD Mentality",
+      "uninstallDisplayName": "Tal HUD Mentality ${version}"
     },
     "portable": {
-      "artifactName": "nonchalant-HUD-${version}-portable.${ext}"
+      "artifactName": "Tal-HUD-Mentality-${version}-portable.${ext}"
     }
   },
   "devDependencies": {

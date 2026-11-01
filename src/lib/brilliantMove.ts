@@ -10,6 +10,7 @@ const CLEAR_WIN_CP = 300;
 // A second positive evaluation alone does not make the sacrifice dispensable.
 // Require a full pawn of separation, stable at twice the verification budget.
 const MEANINGFUL_GAP_CP = 100;
+const MAX_MATE_PROOF_NODES = 4096;
 const UCI = /^[a-h][1-8][a-h][1-8][qrbn]?$/;
 
 export interface SacrificeAcceptance {
@@ -50,6 +51,15 @@ function legalUci(game: Chess): string[] {
  * therefore do not qualify. More than four acceptance branches are left unlabelled.
  */
 export function inspectSacrifice(fenBefore: string, uci: string): SacrificeCandidate | null {
+  return inspectMaterialOffer(fenBefore, uci, MIN_INVESTMENT_CP, false);
+}
+
+/** Tal HUD includes pawn and exchange offers; equal trades still invest zero. */
+export function inspectSoundSacrifice(fenBefore: string, uci: string): SacrificeCandidate | null {
+  return inspectMaterialOffer(fenBefore, uci, 100, true);
+}
+
+function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, allowPawns: boolean): SacrificeCandidate | null {
   try {
     if (!UCI.test(uci)) return null;
     const game = new Chess(fenBefore);
@@ -58,7 +68,7 @@ export function inspectSacrifice(fenBefore: string, uci: string): SacrificeCandi
     const learner = game.turn();
     const rootMaterial = material(game, learner);
     const move = play(game, uci);
-    if (move.piece === 'p' || move.piece === 'k' || move.promotion || game.isGameOver()) return null;
+    if ((!allowPawns && move.piece === 'p') || move.piece === 'k' || move.promotion || game.isGameOver()) return null;
     const fenAfterMove = game.fen();
     const captures = game.moves({ verbose: true }).filter(reply => reply.to === move.to && reply.captured === move.piece);
     if (!captures.length || captures.length > 4) return null;
@@ -79,7 +89,7 @@ export function inspectSacrifice(fenBefore: string, uci: string): SacrificeCandi
         fenAfterAcceptance, investmentCp: Math.max(0, rootMaterial - bestImmediateMaterial),
       };
     });
-    if (!acceptances.some(acceptance => acceptance.investmentCp >= MIN_INVESTMENT_CP)) return null;
+    if (!acceptances.some(acceptance => acceptance.investmentCp >= minimum)) return null;
     return { fenBefore: new Chess(fenBefore).fen(), fenAfterMove, uci, san: move.san, piece: move.piece, learner, acceptances };
   } catch { return null; }
 }
@@ -90,27 +100,61 @@ function finiteScore(score: Score): score is NonNullable<Score> {
   return Boolean(score && (score.kind === 'cp' || score.kind === 'mate') && Number.isFinite(score.value));
 }
 
-function soundChoice(best: Score, chosen: Score): boolean {
+function soundChoice(best: Score, chosen: Score, minimum = -35): boolean {
   if (!finiteScore(best) || !finiteScore(chosen)) return false;
   if (best.kind === 'mate') return best.value > 0 && chosen.kind === 'mate' && chosen.value > 0;
   if (chosen.kind === 'mate') return chosen.value > 0;
-  return chosen.value >= -35 && best.value - chosen.value <= 40;
+  return chosen.value >= minimum && best.value - chosen.value <= 40;
 }
 
 function clearlyWinning(score: Score): boolean {
   return finiteScore(score) && (score.kind === 'mate' ? score.value > 0 : score.value >= CLEAR_WIN_CP);
 }
 
-function acceptanceHolds(chosen: Score, accepted: Score): boolean {
+function acceptanceHolds(chosen: Score, accepted: Score, minimum = -35): boolean {
   if (!finiteScore(chosen) || !finiteScore(accepted)) return false;
   if (chosen.kind === 'mate') return chosen.value > 0 && accepted.kind === 'mate' && accepted.value > 0;
   if (accepted.kind === 'mate') return accepted.value > 0;
-  return accepted.value >= Math.max(-35, chosen.value - 80);
+  return accepted.value >= Math.max(minimum, chosen.value - 80);
 }
 
 function meaningfulGap(chosen: Score, alternative: Score): boolean {
   return finiteScore(chosen) && finiteScore(alternative) && chosen.kind === 'cp' && alternative.kind === 'cp' &&
     chosen.value - alternative.value >= MEANINGFUL_GAP_CP;
+}
+
+/** Every legal defense must allow immediate mate, not merely the engine's PV.
+ * Replay from the original FEN so move counters and the short line's history
+ * survive. A draw, extra defensive resource or exhausted budget is no proof.
+ */
+function provesMateInTwo(candidate: SacrificeCandidate, signal?: AbortSignal): boolean {
+  const board = new Chess(candidate.fenBefore);
+  const attacker = board.turn();
+  if (board.isGameOver()) return false;
+  play(board, candidate.uci);
+  if (board.isGameOver()) return false;
+  const replies = legalUci(board);
+  let visited = 0;
+  for (const reply of replies) {
+    abortIfNeeded(signal);
+    if (++visited > MAX_MATE_PROOF_NODES) return false;
+    play(board, reply);
+    try {
+      if (board.isGameOver() || board.turn() !== attacker) return false;
+      let mates = false;
+      for (const finish of legalUci(board)) {
+        abortIfNeeded(signal);
+        if (++visited > MAX_MATE_PROOF_NODES) return false;
+        play(board, finish);
+        // Checkmate takes precedence over a halfmove counter reaching 100.
+        mates = board.isCheckmate() && board.turn() !== attacker;
+        board.undo();
+        if (mates) break;
+      }
+      if (!mates) return false;
+    } finally { board.undo(); }
+  }
+  return replies.length > 0;
 }
 
 function abortIfNeeded(signal?: AbortSignal): void {
@@ -130,8 +174,9 @@ function usable(result: EngineResult, fen: string, allowed?: string[]): boolean 
  * acceptance score is already learner POV: do not negate it for Black.
  * Cancellation propagates; any failed check means no badge. If another move
  * also wins, a cp-scored sacrifice must beat it by >=100cp in both the normal
- * and doubled-budget searches. Comparable alternatives and alternative mates
- * still suppress the badge. This is nonchalant's own criterion, not Chess.com's.
+ * and doubled-budget searches. A separately proven mate-in-two sacrifice can
+ * qualify despite winning alternatives; all other guards still apply.
+ * This is nonchalant's own criterion, not Chess.com's.
  */
 export async function verifyBrilliantMove(
   candidate: SacrificeCandidate,
@@ -140,12 +185,38 @@ export async function verifyBrilliantMove(
   engine: EngineLike,
   options: { nodes: number; signal?: AbortSignal },
 ): Promise<{ brilliant: boolean; reason?: string }> {
+  return verifyMaterialOffer(candidate, before, chosen, engine, options, 'brilliant');
+}
+
+/** Independent Tal profile: adequate compensation, not a site's !! award.
+ * The return field is shared with the existing HUD transport for compatibility.
+ */
+export async function verifySoundSacrifice(
+  candidate: SacrificeCandidate,
+  before: EngineResult,
+  chosen: EngineResult,
+  engine: EngineLike,
+  options: { nodes: number; signal?: AbortSignal },
+): Promise<{ brilliant: boolean; reason?: string }> {
+  return verifyMaterialOffer(candidate, before, chosen, engine, options, 'sound-sacrifice');
+}
+
+async function verifyMaterialOffer(
+  candidate: SacrificeCandidate,
+  before: EngineResult,
+  chosen: EngineResult,
+  engine: EngineLike,
+  options: { nodes: number; signal?: AbortSignal },
+  profile: 'brilliant' | 'sound-sacrifice',
+): Promise<{ brilliant: boolean; reason?: string }> {
   const no = { brilliant: false };
+  const minimumScore = profile === 'sound-sacrifice' ? 0 : -35;
+  const minimumInvestment = profile === 'sound-sacrifice' ? 100 : MIN_INVESTMENT_CP;
   abortIfNeeded(options.signal);
   try {
-    if (!Number.isSafeInteger(options.nodes) || options.nodes <= 0 || !soundChoice(before.score, chosen.score)) return no;
+    if (!Number.isSafeInteger(options.nodes) || options.nodes <= 0 || !soundChoice(before.score, chosen.score, minimumScore)) return no;
     // Recreate the legal branches instead of trusting a caller-mutated candidate.
-    const inspected = inspectSacrifice(candidate.fenBefore, candidate.uci);
+    const inspected = profile === 'sound-sacrifice' ? inspectSoundSacrifice(candidate.fenBefore, candidate.uci) : inspectSacrifice(candidate.fenBefore, candidate.uci);
     if (!inspected) return no;
     const nodes = Math.max(MIN_VERIFICATION_NODES, options.nodes);
     let verificationNodes = nodes;
@@ -158,36 +229,50 @@ export async function verifyBrilliantMove(
     let strongBest = await analyze(inspected.fenBefore);
     if (!usable(strongBest, inspected.fenBefore)) return no;
     let strongChosen = strongBest.bestMove === inspected.uci ? strongBest : await analyze(inspected.fenBefore, [inspected.uci]);
-    if (!usable(strongChosen, inspected.fenBefore, [inspected.uci]) || !soundChoice(strongBest.score, strongChosen.score)) return no;
+    if (!usable(strongChosen, inspected.fenBefore, [inspected.uci]) || !soundChoice(strongBest.score, strongChosen.score, minimumScore)) return no;
+    let shortMate = false;
 
-    if (clearlyWinning(strongBest.score)) {
+    if (profile === 'brilliant' && clearlyWinning(strongBest.score)) {
       const alternatives = legalUci(new Chess(inspected.fenBefore)).filter(move => move !== inspected.uci);
       const alternative = await analyze(inspected.fenBefore, alternatives);
       if (!usable(alternative, inspected.fenBefore, alternatives)) return no;
       if (clearlyWinning(alternative.score)) {
-        if (!meaningfulGap(strongChosen.score, alternative.score) || !Number.isSafeInteger(nodes * 2)) return no;
-        verificationNodes = nodes * 2;
-        const deeperBest = await analyze(inspected.fenBefore);
-        if (!usable(deeperBest, inspected.fenBefore)) return no;
-        const deeperChosen = deeperBest.bestMove === inspected.uci ? deeperBest : await analyze(inspected.fenBefore, [inspected.uci]);
-        const deeperAlternative = await analyze(inspected.fenBefore, alternatives);
-        if (!usable(deeperChosen, inspected.fenBefore, [inspected.uci]) || !usable(deeperAlternative, inspected.fenBefore, alternatives) ||
-          !soundChoice(deeperBest.score, deeperChosen.score) || !meaningfulGap(deeperChosen.score, deeperAlternative.score)) return no;
-        strongBest = deeperBest; strongChosen = deeperChosen;
+        // A smothered-mate offer can be brilliant even when another check
+        // repeats the position before reaching the same sacrifice later.
+        // Do not trust a mate score alone or penalize an available mate in one.
+        shortMate = strongChosen.score?.kind === 'mate' && strongChosen.score.value === 2 &&
+          !(strongBest.score?.kind === 'mate' && strongBest.score.value === 1) && provesMateInTwo(inspected, options.signal);
+        if (!shortMate) {
+          if (!meaningfulGap(strongChosen.score, alternative.score) || !Number.isSafeInteger(nodes * 2)) return no;
+          verificationNodes = nodes * 2;
+          const deeperBest = await analyze(inspected.fenBefore);
+          if (!usable(deeperBest, inspected.fenBefore)) return no;
+          const deeperChosen = deeperBest.bestMove === inspected.uci ? deeperBest : await analyze(inspected.fenBefore, [inspected.uci]);
+          const deeperAlternative = await analyze(inspected.fenBefore, alternatives);
+          if (!usable(deeperChosen, inspected.fenBefore, [inspected.uci]) || !usable(deeperAlternative, inspected.fenBefore, alternatives) ||
+            !soundChoice(deeperBest.score, deeperChosen.score) || !meaningfulGap(deeperChosen.score, deeperAlternative.score)) return no;
+          strongBest = deeperBest; strongChosen = deeperChosen;
+        }
       }
     }
 
     for (const acceptance of inspected.acceptances) {
       const after = new Chess(acceptance.fenAfterAcceptance);
-      if (after.isGameOver()) return no;
+      if (after.isGameOver()) {
+        // A proven draw can be adequate compensation for Tal's equal position;
+        // it cannot replace a forced win or rescue an unsound material offer.
+        if (profile !== 'sound-sacrifice' || !after.isDraw() || after.isCheckmate() ||
+          !acceptanceHolds(strongChosen.score, { kind: 'cp', value: 0 }, minimumScore)) return no;
+        continue;
+      }
       const accepted = await analyze(acceptance.fenAfterAcceptance);
-      if (!usable(accepted, acceptance.fenAfterAcceptance) || !acceptanceHolds(strongChosen.score, accepted.score)) return no;
+      if (!usable(accepted, acceptance.fenAfterAcceptance) || !acceptanceHolds(strongChosen.score, accepted.score, minimumScore)) return no;
     }
-    const offer = inspected.acceptances.find(acceptance => acceptance.investmentCp >= MIN_INVESTMENT_CP)!;
+    const offer = inspected.acceptances.find(acceptance => acceptance.investmentCp >= minimumInvestment)!;
     const investment = (offer.investmentCp / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
     return {
       brilliant: true,
-      reason: `Жертва ${NAMES[inspected.piece]}: ${inspected.san}. Материальная уступка при ${offer.san}: около ${investment} п. с учётом возможного немедленного обратного взятия. Усиленная проверка принятия сохраняет оценку; это критерий «!!» nonchalant.`,
+      reason: `Жертва ${NAMES[inspected.piece]}: ${inspected.san}. Материальная уступка при ${offer.san}: около ${investment} п. с учётом возможного немедленного обратного взятия. ${shortMate ? 'Полный перебор легальных защит подтверждает мат следующим ходом после любого ответа на жертву. ' : ''}${profile === 'sound-sacrifice' ? 'Усиленная проверка предложения и принятия подтверждает достаточную компенсацию по критериям Tal HUD Mentality.' : 'Усиленная проверка принятия сохраняет оценку; это критерий «!!» nonchalant.'}`,
     };
   } catch (caught) {
     abortIfNeeded(options.signal);

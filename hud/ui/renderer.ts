@@ -4,8 +4,7 @@ import { ScreenPositionTracker, validateTrustedFen } from '../core/position';
 import { SCREEN_STATUS, type ScreenIssue } from '../core/screenStatus';
 import { MOVE_STATUS } from '../core/moveHistory';
 import type { AppState } from '../types';
-import type { SoundAsset } from '../core/soundStore';
-import { NotificationSoundPlayer, validateSound } from './sound';
+import { NotificationSoundPlayer, shouldStopSound, validateSound } from './sound';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 const input = (id: string) => $<HTMLInputElement>(id);
@@ -18,38 +17,65 @@ const soundPlayer = new NotificationSoundPlayer(() => {
   if (previewingSound) { previewingSound = false; $('sound-message').textContent = 'Прослушивание завершено.'; }
 });
 let soundRequest = 0, previewingSound = false;
-let cachedSound: { revision: string; asset: SoundAsset | null } | null = null;
-function stopSound() { ++soundRequest; soundPlayer.stop(); previewingSound = false; }
+let pendingSoundRequest: number | null = null;
+let soundLibraryIdentity = '';
+function stopSound() { ++soundRequest; pendingSoundRequest = null; soundPlayer.stop(); previewingSound = false; }
 async function playSound(preview: boolean) {
+  // An unfinished track belongs to its original notification. Another signal
+  // must not cut it off or start a second audio stream over it.
+  if (!preview && (soundPlayer.playing || pendingSoundRequest !== null || previewingSound)) return;
   stopSound(); previewingSound = preview; const request = soundRequest;
-  const settings = state.soundSettings;
+  pendingSoundRequest = request;
+  const settings = state.soundSettings, positionRevision = state.revision;
   try {
-    let asset = cachedSound?.revision === settings.revision ? cachedSound.asset : undefined;
-    if (asset === undefined) {
-      asset = await window.hud.readSound();
-      if (request !== soundRequest) return;
-      cachedSound = { revision: settings.revision, asset };
-    }
-    if (request !== soundRequest || !preview && (!state.sound || !state.idea)) return;
+    // Resolve anew every time: random mode never reuses a cached first track.
+    const asset = await window.hud.readSound();
+    if (request !== soundRequest || !preview && (!state.sound || !state.idea || state.revision !== positionRevision)) return;
     await soundPlayer.play(asset, settings);
-    if (preview) $('sound-message').textContent = settings.volume === 0 ? 'Громкость — 0%. Поднимите ползунок, чтобы услышать звук.' : 'Прослушивание. «Стоп» остановит звук.';
-  } catch { if (request === soundRequest) $('sound-message').textContent = 'Не удалось воспроизвести звук. Выберите другой файл или стандартный сигнал.'; }
+    if (request !== soundRequest) return;
+    if (settings.volume === 0) previewingSound = false;
+    if (preview) $('sound-message').textContent = settings.volume === 0 ? 'Громкость — 0%. Поднимите ползунок, чтобы услышать звук.' : `Прослушивание: ${asset?.name ?? 'стандартный сигнал'}. «Стоп» остановит звук.`;
+  } catch { if (request === soundRequest) { previewingSound = false; $('sound-message').textContent = 'Не удалось воспроизвести звук. Выберите другой файл или стандартный сигнал.'; } }
+  finally { if (pendingSoundRequest === request) pendingSoundRequest = null; }
+}
+function renderSoundSettings() {
+  const settings = state.soundSettings;
+  const identity = JSON.stringify(settings.tracks);
+  const tracks = $('sound-track') as HTMLSelectElement;
+  if (soundLibraryIdentity !== identity) {
+    soundLibraryIdentity = identity;
+    tracks.replaceChildren(new Option('Стандартный сигнал', ''));
+    for (const track of settings.tracks) tracks.add(new Option(track.name, track.id));
+  }
+  tracks.value = settings.selectedId ?? '';
+  ($('sound-selection') as HTMLSelectElement).value = settings.selection;
+  ($('sound-selection') as HTMLSelectElement).querySelector<HTMLOptionElement>('option[value="random"]')!.disabled = !settings.tracks.length;
+  const count = settings.tracks.length, unit = count === 1 ? 'трек' : count >= 2 && count <= 4 ? 'трека' : 'треков';
+  $('sound-name').textContent = settings.selection === 'random' ? `Случайный выбор · ${count} ${unit}` : settings.name ?? 'Стандартный сигнал';
+  input('sound-volume').value = String(settings.volume);
+  $('sound-volume-value').textContent = `${settings.volume}%`;
+  ($('sound-length') as HTMLSelectElement).value = settings.duration === 0 ? 'full' : 'limited';
+  $('sound-seconds-label').hidden = settings.duration === 0;
+  if (settings.duration > 0) input('sound-duration').value = String(settings.duration);
+  input('sound-stop-on-move').checked = settings.stopOnMove;
+  ($('remove-sound') as HTMLButtonElement).disabled = !settings.selectedId;
+  ($('reset-sound') as HTMLButtonElement).disabled = settings.selection !== 'random' && !settings.selectedId;
 }
 function renderState(value: AppState) {
   // The initial invoke response can arrive after a newer state broadcast.
   if (state && value.revision < state.revision) return;
   const switched = state && state.mode !== value.mode;
-  const soundChanged = state && state.soundSettings.revision !== value.soundSettings.revision;
+  const stopAudio = shouldStopSound(state, value, previewingSound);
   const wasPaused = state?.status === 'paused'; state = value;
   if (overlayMode) {
     document.body.classList.toggle('collapsed', state.collapsed);
     document.body.classList.toggle('movable', state.movable);
     $('overlay').className = `${state.status}${state.idea ? ' idea' : ''}`;
-    $('signal').textContent = state.idea ? 'Есть блестящая идея' : 'nonchalant';
+    $('signal').textContent = state.idea ? 'Есть сильная жертва' : 'Tal HUD Mentality';
     $('status').textContent = state.movable ? `Переместите · ${shortcut('M')} закрепить`
       : state.status === 'unknown' && state.mode === 'moves' ? MOVE_STATUS[state.moveIssue]
       : state.status === 'unknown' && state.mode === 'screen' && state.screenIssue ? SCREEN_STATUS[state.screenIssue] : labels[state.status];
-    $('mark').textContent = state.collapsed && state.status === 'checking' ? '··' : state.collapsed && state.status === 'unknown' ? '?' : state.collapsed && state.status === 'paused' ? 'Ⅱ' : '!!';
+    $('mark').textContent = state.collapsed && state.status === 'checking' ? '··' : state.collapsed && state.status === 'unknown' ? '?' : state.collapsed && state.status === 'paused' ? 'Ⅱ' : '♞';
     return;
   }
   $('settings-status').textContent = labels[state.status];
@@ -58,13 +84,8 @@ function renderState(value: AppState) {
   $('collapse').textContent = state.collapsed ? 'Развернуть HUD' : 'Свернуть HUD';
   $('move').textContent = state.movable ? 'Закрепить HUD' : 'Переместить HUD';
   input('sound').checked = state.sound;
-  if (soundChanged) { stopSound(); cachedSound = null; }
-  if (!previewingSound && (!state.idea || !state.sound)) stopSound();
-  $('sound-name').textContent = state.soundSettings.name ?? 'Стандартный сигнал';
-  input('sound-volume').value = String(state.soundSettings.volume);
-  $('sound-volume-value').textContent = `${state.soundSettings.volume}%`;
-  input('sound-duration').value = String(state.soundSettings.duration);
-  ($('reset-sound') as HTMLButtonElement).disabled = !state.soundSettings.name;
+  if (stopAudio) stopSound();
+  renderSoundSettings();
   $('direct-panel').hidden = state.mode !== 'direct'; $('screen-panel').hidden = state.mode !== 'screen';
   $('moves-panel').hidden = state.mode !== 'moves';
   $('direct-tab').classList.toggle('active', state.mode === 'direct'); $('screen-tab').classList.toggle('active', state.mode === 'screen');
@@ -306,17 +327,41 @@ function initializeControls() {
   input('sound').onchange = () => { stopSound(); void window.hud.configure({ sound: input('sound').checked }); };
   input('sound-volume').oninput = () => { $('sound-volume-value').textContent = `${input('sound-volume').value}%`; };
   input('sound-volume').onchange = () => { stopSound(); void window.hud.configure({ volume: Number(input('sound-volume').value) }); };
-  input('sound-duration').onchange = () => { stopSound(); void window.hud.configure({ duration: Number(input('sound-duration').value) }); };
+  const configureSound = async (settings: Parameters<typeof window.hud.configure>[0]) => {
+    stopSound();
+    try { await window.hud.configure(settings); }
+    catch { $('sound-message').textContent = 'Не удалось сохранить настройку.'; renderSoundSettings(); }
+  };
+  input('sound-duration').onchange = () => {
+    const seconds = Number(input('sound-duration').value);
+    if (!Number.isInteger(seconds) || seconds < 1 || seconds > 600) { $('sound-message').textContent = 'Укажите от 1 до 600 секунд.'; return; }
+    void configureSound({ duration: seconds });
+  };
+  ($('sound-length') as HTMLSelectElement).onchange = () => { void configureSound({ duration: ($('sound-length') as HTMLSelectElement).value === 'full' ? 0 : Math.max(1, Math.min(600, Number(input('sound-duration').value) || 5)) }); };
+  input('sound-stop-on-move').onchange = () => { void configureSound({ stopOnMove: input('sound-stop-on-move').checked }); };
+  ($('sound-selection') as HTMLSelectElement).onchange = () => { void configureSound({ selection: ($('sound-selection') as HTMLSelectElement).value as 'selected' | 'random' }); };
+  ($('sound-track') as HTMLSelectElement).onchange = () => { void configureSound({ selectedId: ($('sound-track') as HTMLSelectElement).value || null }); };
+  $('remove-sound').onclick = () => {
+    const selectedId = state.soundSettings.selectedId;
+    if (!selectedId) return;
+    stopSound();
+    void window.hud.removeSound(selectedId).then(() => { $('sound-message').textContent = 'Трек удалён из библиотеки HUD.'; }).catch(() => { $('sound-message').textContent = 'Не удалось удалить трек.'; });
+  };
   $('choose-sound').onclick = async () => {
     const button = $('choose-sound') as HTMLButtonElement; button.disabled = true; stopSound();
     $('sound-message').textContent = '';
     try {
-      const choice = await window.hud.chooseSound();
-      if (choice) {
-        $('sound-message').textContent = 'Проверяем аудиофайл…';
-        await validateSound(choice); await window.hud.confirmSound(choice.id);
-        $('sound-message').textContent = 'Файл сохранён. Нажмите «Прослушать», затем включите «Звук» выше.';
+      const choices = await window.hud.chooseSounds();
+      let added = 0; const errors: string[] = [];
+      for (const choice of choices) {
+        $('sound-message').textContent = `Проверяем: ${choice.name}…`;
+        try { await validateSound(choice); await window.hud.confirmSound(choice.id); added++; }
+        catch (error) {
+          await window.hud.discardSound(choice.id).catch(() => {});
+          errors.push(`${choice.name}: ${(error as Error).message}`);
+        }
       }
+      if (choices.length) $('sound-message').textContent = `${added ? `Добавлено: ${added}. Выберите трек или случайное воспроизведение.` : 'Ни один файл не добавлен.'}${errors.length ? ` Не добавлены: ${errors.join('; ')}` : ''}`;
     } catch (error) { $('sound-message').textContent = (error as Error).message; }
     finally { button.disabled = false; }
   };
