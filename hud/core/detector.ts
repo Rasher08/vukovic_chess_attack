@@ -106,25 +106,19 @@ export async function detectSacrifice(
       if (line.depth < 12) continue;
       const candidate = candidates.find(c => c.uci === line.bestMove);
       if (!candidate) throw new IncompleteAnalysisError('Ответ движка не соответствует кандидатам.');
-      let confirmed = true;
-      // The first positive is provisional. Re-run the SAME offer, all its
-      // acceptances and unrestricted defense at a strictly greater depth.
-      for (const depth of [20, 22]) {
-        const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, depth);
-        const before = await deepAnalyze(board.fen());
-        // Tal accepts a sound offer even when another move ranks first. The
-        // exact same candidate must hold up at both independent search depths.
-        const chosen = before.bestMove === candidate.uci ? before : await deepAnalyze(board.fen(), { searchMoves: [candidate.uci] });
-        if (!sound(before.score, chosen.score)) { confirmed = false; break; }
-        const verified = await verifySoundSacrifice(candidate, before, chosen, { analyze: deepAnalyze }, { nodes, signal });
-        check();
-        // The shared verifier swallows search errors; keep them incomplete.
-        if (failure) throw failure;
-        if (!verified.brilliant) { confirmed = false; break; }
-        const defense = await deepAnalyze(candidate.fenAfterMove);
-        if (!defenseHolds(chosen.score!, defense.score!)) { confirmed = false; break; }
-      }
-      if (!confirmed) continue;
+      // One quality pass: the offer, every acceptance and unrestricted defense
+      // must actually reach depth22; the candidate-ranking search is not proof.
+      const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, 22);
+      const before = await deepAnalyze(board.fen());
+      const chosen = before.bestMove === candidate.uci ? before : await deepAnalyze(board.fen(), { searchMoves: [candidate.uci] });
+      if (!sound(before.score, chosen.score)) continue;
+      const verified = await verifySoundSacrifice(candidate, before, chosen, { analyze: deepAnalyze }, { nodes, signal });
+      check();
+      // The shared verifier swallows search errors; keep them incomplete.
+      if (failure) throw failure;
+      if (!verified.brilliant) continue;
+      const defense = await deepAnalyze(candidate.fenAfterMove);
+      if (!defenseHolds(chosen.score!, defense.score!)) continue;
       return { brilliant: true };
     }
     return { brilliant: false };

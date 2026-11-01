@@ -47,7 +47,7 @@ async function run() {
     assert(engine.traces.some(t => t.options.multiPv && t.options.searchMoves?.includes('f6e4')), 'restricted MultiPV is only the candidate generator');
     assert(engine.traces.some(t => t.fen === candidate.fenAfterMove && !t.options.searchMoves), 'independent unrestricted strongest defense was searched');
     for (const acceptance of candidate.acceptances) assert(engine.traces.some(t => t.fen === acceptance.fenAfterAcceptance), 'every legal acceptance was checked');
-    for (const depth of [20, 22]) {
+    for (const depth of [22]) {
       assert(engine.traces.some(t => t.fen === good && t.options.depth === depth && t.result.depth >= depth));
       assert(engine.traces.some(t => t.fen === candidate.fenAfterMove && t.options.depth === depth && t.result.depth >= depth));
     }
@@ -57,7 +57,11 @@ async function run() {
     assert.deepEqual(await detectSacrifice(rotated(good), engine, new AbortController().signal), { brilliant: true }, 'Black side-to-move uses correct score POV');
     console.log('PASS real Stockfish 19 Lite: Black side-to-move and reversed colors.');
     const neutralStart = engine.traces.length;
-    assert.deepEqual(await detectSacrifice(nearBestOnly, engine, new AbortController().signal), { brilliant: false }, 'This neutral offer is not certified when its acceptance scores below the strict zero floor at22');
+    // Cold depth22 may exhaust the budget on another rejected candidate. Both
+    // a negative verdict and an explicitly incomplete search must stay silent.
+    try {
+      assert.deepEqual(await detectSacrifice(nearBestOnly, engine, new AbortController().signal), { brilliant: false });
+    } catch (error) { assert(error instanceof IncompleteAnalysisError, 'No positive verdict or unexpected error for the borderline offer'); }
     const neutralOffer = inspectSoundSacrifice(nearBestOnly, 'e5c4')!;
     assert(engine.traces.slice(neutralStart).some(t => t.fen === neutralOffer.acceptances[0].fenAfterAcceptance && t.options.depth === 22 && t.result.score?.kind === 'cp' && t.result.score.value < 0), 'Rejection comes from a deeper negative acceptance, not from ranking another move first');
     assert.deepEqual(await detectSacrifice(refutedLater, engine, new AbortController().signal), { brilliant: false }, 'The second reported Nc4 signal is rejected by deeper verification');
@@ -84,8 +88,8 @@ async function run() {
     assert(inspectSacrifice(reported, 'f6e4'), 'Reported idea is a structural sacrifice');
     const reportedOffer = inspectSoundSacrifice(reported, 'f6e4')!;
     assert(!positiveTraces.some(t => t.fen === reported && t.options.searchMoves && !t.options.searchMoves.includes('f6e4') && !t.options.multiPv), 'Tal does not need a best-alternative uniqueness search');
-    for (const depth of [20, 22]) {
-      assert(positiveTraces.some(t => t.fen === reportedOffer.acceptances[0].fenAfterAcceptance && t.options.depth === depth), 'Every acceptance is checked at both quality stages');
+    for (const depth of [22]) {
+      assert(positiveTraces.some(t => t.fen === reportedOffer.acceptances[0].fenAfterAcceptance && t.options.depth === depth), 'Every acceptance is checked at the required quality stage');
       assert(positiveTraces.some(t => t.fen === reportedOffer.fenAfterMove && t.options.depth === depth && !t.options.searchMoves), 'Strongest unrestricted defense remains mandatory');
     }
     const reportGame = parseReviewPgn('1.e4 e5 2.Nf3 Nf6 3.Nxe5 Nc6 4.Nxc6 dxc6 5.d3 Bc5 6.Bg5 Nxe4 *');
@@ -96,6 +100,14 @@ async function run() {
 
     const konoxaGame = new Chess();
     konoxaGame.loadPgn(readFileSync(new URL('../../tests/fixtures/brilliant-konoxa-2026-11-01.pgn', import.meta.url), 'utf8'));
+    const bishop = konoxaGame.history({ verbose: true })[47];
+    assert.equal(bishop.san, 'Bxf2+');
+    const bishopBegin = engine.traces.length;
+    assert.deepEqual(await detectSacrifice(bishop.before, engine, new AbortController().signal), { brilliant: true });
+    const bishopTraces = engine.traces.slice(bishopBegin);
+    assert(bishopTraces.some(t => t.options.depth === 22 && t.fen === bishop.before && t.result.bestMove === 'b6f2'));
+    assert(!bishopTraces.some(t => t.options.depth === 20), 'No duplicate depth20 pass');
+    console.log('PASS reported24...Bxf2+: real depth22-only result.');
     const konoxa = konoxaGame.history({ verbose: true })[57];
     assert.equal(konoxa.san, 'Qg1+');
     const konoxaOffer = inspectSacrifice(konoxa.before, 'd4g1')!;
@@ -104,14 +116,14 @@ async function run() {
       const begin = engine.traces.length;
       assert.deepEqual(await detectSacrifice(fen, engine, new AbortController().signal), { brilliant: true }, 'HUD recognizes the voluntary mate-in-two sacrifice despite other mating continuations');
       const traces = engine.traces.slice(begin);
-      for (const depth of [20, 22]) {
-        assert(traces.some(t => t.fen === fen && t.options.depth === depth && !t.options.searchMoves && t.result.depth >= depth), 'Each color still requires both actual deep root searches');
+      for (const depth of [22]) {
+        assert(traces.some(t => t.fen === fen && t.options.depth === depth && !t.options.searchMoves && t.result.depth >= depth), 'Each color still requires an actual depth22 root search');
       }
       const offer = fen === konoxa.before ? konoxaOffer : inspectSacrifice(fen, 'd5g8')!;
       assert(offer);
-      for (const depth of [20, 22]) assert(traces.some(t => t.fen === offer.fenAfterMove && t.options.depth === depth && !t.options.searchMoves), 'Independent strongest defense is retained at both depths');
+      for (const depth of [22]) assert(traces.some(t => t.fen === offer.fenAfterMove && t.options.depth === depth && !t.options.searchMoves), 'Independent strongest defense is retained at depth22');
     }
-    console.log('PASS reported Konoxa29...Qg1+: Tal quality, HUD depth20/22, strongest defense and both colors.');
+    console.log('PASS reported Konoxa29...Qg1+: Tal quality, HUD depth22, strongest defense and both colors.');
     const qg = new Chess(); qg.move('d4'); qg.move('d5');
     const newOffers = [
       { fen: qg.fen(), move: 'c2c4', investment: 100, label: 'Queen’s Gambit pawn compensation' },
@@ -124,13 +136,13 @@ async function run() {
       const begin = engine.traces.length;
       assert.deepEqual(await detectSacrifice(item.fen, engine, new AbortController().signal), { brilliant: true }, item.label);
       const traces = engine.traces.slice(begin);
-      for (const depth of [20, 22]) {
-        assert(traces.some(t => t.fen === item.fen && t.options.depth === depth && !t.options.searchMoves), 'Both independent quality stages are required');
+      for (const depth of [22]) {
+        assert(traces.some(t => t.fen === item.fen && t.options.depth === depth && !t.options.searchMoves), 'One depth22 quality stage is required');
         assert(traces.some(t => t.fen === offer.fenAfterMove && t.options.depth === depth && !t.options.searchMoves), 'Strongest defense after the actual selected offer is required');
-        for (const acceptance of offer.acceptances) assert(traces.some(t => t.fen === acceptance.fenAfterAcceptance && t.options.depth === depth), 'The same pawn/exchange offer was accepted at both stages');
+        for (const acceptance of offer.acceptances) assert(traces.some(t => t.fen === acceptance.fenAfterAcceptance && t.options.depth === depth), 'The same pawn/exchange offer was accepted at depth22');
       }
     }
-    console.log('PASS actual Tal HUD: pawn compensation and170cp exchange sacrifice at both20/22 stages; website eligibility unchanged.');
+    console.log('PASS actual Tal HUD: pawn compensation and170cp exchange sacrifice at depth22; website eligibility unchanged.');
 
 
   } finally { engine.dispose(); }

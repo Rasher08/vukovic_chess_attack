@@ -19,8 +19,18 @@ const soundPlayer = new NotificationSoundPlayer(() => {
 let soundRequest = 0, previewingSound = false;
 let pendingSoundRequest: number | null = null;
 let soundLibraryIdentity = '';
+type SoundPlaylist = { activeIds: string[]; includeTone: boolean };
+let soundPlaylistDraft: SoundPlaylist | null = null;
+let soundPlaylistWrites = Promise.resolve();
+let soundPlaylistPending = 0, soundPlaylistGeneration = 0;
+let soundLibraryBusy = false;
+const samePlaylist = (a: SoundPlaylist, b: SoundPlaylist) => a.includeTone === b.includeTone && a.activeIds.length === b.activeIds.length && a.activeIds.every(id => b.activeIds.includes(id));
 function stopSound() { ++soundRequest; pendingSoundRequest = null; soundPlayer.stop(); previewingSound = false; }
 async function playSound(preview: boolean) {
+  if (soundPlaylistDraft || !state.soundSettings.includeTone && !state.soundSettings.activeIds.length) {
+    if (preview) $('sound-message').textContent = 'Отметьте хотя бы один звук для прослушивания.';
+    return;
+  }
   // An unfinished track belongs to its original notification. Another signal
   // must not cut it off or start a second audio stream over it.
   if (!preview && (soundPlayer.playing || pendingSoundRequest !== null || previewingSound)) return;
@@ -40,26 +50,65 @@ async function playSound(preview: boolean) {
 }
 function renderSoundSettings() {
   const settings = state.soundSettings;
+  // Older broadcasts must not undo a second checkbox click while the first
+  // snapshot is still being saved. Drop the draft once the final state arrives.
+  if (soundPlaylistDraft && !soundPlaylistPending && samePlaylist(soundPlaylistDraft, settings)) soundPlaylistDraft = null;
+  const playlist = soundPlaylistDraft ?? settings;
   const identity = JSON.stringify(settings.tracks);
-  const tracks = $('sound-track') as HTMLSelectElement;
+  const tracks = $('sound-tracks');
   if (soundLibraryIdentity !== identity) {
     soundLibraryIdentity = identity;
-    tracks.replaceChildren(new Option('Стандартный сигнал', ''));
-    for (const track of settings.tracks) tracks.add(new Option(track.name, track.id));
+    tracks.replaceChildren();
+    const addRow = (id: string | null, name: string) => {
+      const row = document.createElement('div'); row.className = 'sound-track-row';
+      const label = document.createElement('label'), checkbox = document.createElement('input'), text = document.createElement('span');
+      checkbox.type = 'checkbox';
+      if (id === null) checkbox.id = 'sound-tone';
+      else { checkbox.dataset.soundTrack = id; checkbox.value = id; }
+      text.textContent = name; text.title = name; label.append(checkbox, text); row.append(label);
+      if (id !== null) {
+        const remove = document.createElement('button'); remove.type = 'button'; remove.dataset.removeSound = id;
+        remove.textContent = 'Удалить'; remove.setAttribute('aria-label', `Удалить ${name}`); row.append(remove);
+      }
+      tracks.append(row);
+    };
+    addRow(null, 'Стандартный сигнал');
+    for (const track of settings.tracks) addRow(track.id, track.name);
   }
-  tracks.value = settings.selectedId ?? '';
-  ($('sound-selection') as HTMLSelectElement).value = settings.selection;
-  ($('sound-selection') as HTMLSelectElement).querySelector<HTMLOptionElement>('option[value="random"]')!.disabled = !settings.tracks.length;
-  const count = settings.tracks.length, unit = count === 1 ? 'трек' : count >= 2 && count <= 4 ? 'трека' : 'треков';
-  $('sound-name').textContent = settings.selection === 'random' ? `Случайный выбор · ${count} ${unit}` : settings.name ?? 'Стандартный сигнал';
+  input('sound-tone').checked = playlist.includeTone;
+  tracks.querySelectorAll<HTMLInputElement>('input[data-sound-track]').forEach(checkbox => { checkbox.checked = playlist.activeIds.includes(checkbox.value); });
+  tracks.querySelectorAll<HTMLInputElement>('input').forEach(checkbox => { checkbox.disabled = soundLibraryBusy; });
+  const savingPlaylist = soundPlaylistPending > 0 || !!soundPlaylistDraft;
+  tracks.querySelectorAll<HTMLButtonElement>('button[data-remove-sound]').forEach(button => { button.disabled = savingPlaylist || soundLibraryBusy; });
+  const count = playlist.activeIds.length + Number(playlist.includeTone);
+  $('sound-name').textContent = count > 1 ? `Случайно из ${count}` : !count ? 'Звук не выбран' : playlist.includeTone ? 'Стандартный сигнал' : settings.tracks.find(track => track.id === playlist.activeIds[0])?.name ?? 'Звук не выбран';
+  ($('preview-sound') as HTMLButtonElement).disabled = !count || savingPlaylist || soundLibraryBusy;
+  $('preview-sound').title = !count ? 'Отметьте хотя бы один звук' : '';
+  $('sound-playlist-status').textContent = !count ? 'Ничего не отмечено — уведомления будут без звука.' : count === 1 ? 'Будет играть отмеченный звук.' : 'При каждом уведомлении случайно выбирается один из отмеченных звуков.';
   input('sound-volume').value = String(settings.volume);
   $('sound-volume-value').textContent = `${settings.volume}%`;
   ($('sound-length') as HTMLSelectElement).value = settings.duration === 0 ? 'full' : 'limited';
   $('sound-seconds-label').hidden = settings.duration === 0;
   if (settings.duration > 0) input('sound-duration').value = String(settings.duration);
   input('sound-stop-on-move').checked = settings.stopOnMove;
-  ($('remove-sound') as HTMLButtonElement).disabled = !settings.selectedId;
-  ($('reset-sound') as HTMLButtonElement).disabled = settings.selection !== 'random' && !settings.selectedId;
+  ($('choose-sound') as HTMLButtonElement).disabled = savingPlaylist || soundLibraryBusy;
+  ($('reset-sound') as HTMLButtonElement).disabled = savingPlaylist || soundLibraryBusy || playlist.includeTone && !playlist.activeIds.length;
+}
+function saveSoundPlaylist() {
+  const playlist = {
+    includeTone: input('sound-tone').checked,
+    activeIds: Array.from($('sound-tracks').querySelectorAll<HTMLInputElement>('input[data-sound-track]:checked'), checkbox => checkbox.value),
+  };
+  const generation = ++soundPlaylistGeneration;
+  soundPlaylistDraft = playlist; soundPlaylistPending++; stopSound(); renderSoundSettings();
+  soundPlaylistWrites = soundPlaylistWrites.then(async () => {
+    try { await window.hud.configure(playlist); }
+    catch {
+      if (generation === soundPlaylistGeneration) soundPlaylistDraft = null;
+      $('sound-message').textContent = 'Не удалось сохранить выбор звуков.';
+    }
+    finally { soundPlaylistPending--; renderSoundSettings(); }
+  });
 }
 function renderState(value: AppState) {
   // The initial invoke response can arrive after a newer state broadcast.
@@ -339,16 +388,16 @@ function initializeControls() {
   };
   ($('sound-length') as HTMLSelectElement).onchange = () => { void configureSound({ duration: ($('sound-length') as HTMLSelectElement).value === 'full' ? 0 : Math.max(1, Math.min(600, Number(input('sound-duration').value) || 5)) }); };
   input('sound-stop-on-move').onchange = () => { void configureSound({ stopOnMove: input('sound-stop-on-move').checked }); };
-  ($('sound-selection') as HTMLSelectElement).onchange = () => { void configureSound({ selection: ($('sound-selection') as HTMLSelectElement).value as 'selected' | 'random' }); };
-  ($('sound-track') as HTMLSelectElement).onchange = () => { void configureSound({ selectedId: ($('sound-track') as HTMLSelectElement).value || null }); };
-  $('remove-sound').onclick = () => {
-    const selectedId = state.soundSettings.selectedId;
-    if (!selectedId) return;
-    stopSound();
-    void window.hud.removeSound(selectedId).then(() => { $('sound-message').textContent = 'Трек удалён из библиотеки HUD.'; }).catch(() => { $('sound-message').textContent = 'Не удалось удалить трек.'; });
+  $('sound-tracks').onchange = event => { if (event.target instanceof HTMLInputElement) saveSoundPlaylist(); };
+  $('sound-tracks').onclick = event => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('button[data-remove-sound]');
+    const id = button?.dataset.removeSound;
+    if (!button || !id || button.disabled) return;
+    stopSound(); soundLibraryBusy = true; renderSoundSettings();
+    void window.hud.removeSound(id).then(() => { $('sound-message').textContent = 'Трек удалён из библиотеки HUD.'; }).catch(() => { $('sound-message').textContent = 'Не удалось удалить трек.'; }).finally(() => { soundLibraryBusy = false; renderSoundSettings(); });
   };
   $('choose-sound').onclick = async () => {
-    const button = $('choose-sound') as HTMLButtonElement; button.disabled = true; stopSound();
+    soundLibraryBusy = true; stopSound(); renderSoundSettings();
     $('sound-message').textContent = '';
     try {
       const choices = await window.hud.chooseSounds();
@@ -361,11 +410,14 @@ function initializeControls() {
           errors.push(`${choice.name}: ${(error as Error).message}`);
         }
       }
-      if (choices.length) $('sound-message').textContent = `${added ? `Добавлено: ${added}. Выберите трек или случайное воспроизведение.` : 'Ни один файл не добавлен.'}${errors.length ? ` Не добавлены: ${errors.join('; ')}` : ''}`;
+      if (choices.length) $('sound-message').textContent = `${added ? `Добавлено: ${added}. Оставьте галочки у звуков, которые хотите слышать.` : 'Ни один файл не добавлен.'}${errors.length ? ` Не добавлены: ${errors.join('; ')}` : ''}`;
     } catch (error) { $('sound-message').textContent = (error as Error).message; }
-    finally { button.disabled = false; }
+    finally { soundLibraryBusy = false; renderSoundSettings(); }
   };
-  $('reset-sound').onclick = () => { stopSound(); void window.hud.resetSound().then(() => { $('sound-message').textContent = 'Выбран стандартный сигнал.'; }).catch(() => { $('sound-message').textContent = 'Не удалось сохранить настройку.'; }); };
+  $('reset-sound').onclick = () => {
+    stopSound(); soundLibraryBusy = true; renderSoundSettings();
+    void window.hud.resetSound().then(() => { $('sound-message').textContent = 'Выбран стандартный сигнал.'; }).catch(() => { $('sound-message').textContent = 'Не удалось сохранить настройку.'; }).finally(() => { soundLibraryBusy = false; renderSoundSettings(); });
+  };
   $('preview-sound').onclick = () => { void playSound(true); };
   $('stop-sound').onclick = () => { stopSound(); $('sound-message').textContent = 'Остановлено.'; };
   $('copy').onclick = () => { void window.hud.copyToken().then(() => message('Ключ скопирован. Вставьте его в меню HUD на сайте.')); };

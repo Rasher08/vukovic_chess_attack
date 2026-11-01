@@ -21,7 +21,7 @@ export function validateSound(asset: SoundAsset): Promise<void> {
 type PlaybackState = Pick<AppState, 'mode' | 'status' | 'revision' | 'sound' | 'soundSettings'>;
 export function soundSettingsIdentity(settings: SoundSettings): string {
   return JSON.stringify([settings.enabled, settings.volume, settings.duration, settings.stopOnMove,
-    settings.selection, settings.selectedId, settings.revision, settings.tracks.map(track => [track.id, track.name])]);
+    settings.selection, settings.selectedId, settings.includeTone, settings.activeIds, settings.revision, settings.tracks.map(track => [track.id, track.name])]);
 }
 
 /** A valid new position may keep the music; losing the source never does. */

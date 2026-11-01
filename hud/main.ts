@@ -47,7 +47,7 @@ const controller = new HudController(
 const bridge = new BridgeReceiver(token, fen => { if (mode === 'direct') controller.accept(fen); });
 const moveReceiver = new MoveReceiver(token, fen => { if (mode === 'moves') controller.accept(fen); });
 function state(): AppState {
-  return { ...controller.state, mode, sound: soundStore?.settings.enabled ?? false, soundSettings: soundStore?.settings ?? { enabled: false, volume: 35, duration: 5, stopOnMove: true, selection: 'selected', selectedId: null, tracks: [], name: null, revision: '' }, collapsed, movable, bridge: bridgeStatus,
+  return { ...controller.state, mode, sound: soundStore?.settings.enabled ?? false, soundSettings: soundStore?.settings ?? { enabled: false, volume: 35, duration: 5, stopOnMove: true, selection: 'selected', selectedId: null, tracks: [], activeIds: [], includeTone: true, name: null, revision: '' }, collapsed, movable, bridge: bridgeStatus,
     version: app.getVersion(), screenIssue, moveIssue: moveReceiver.issue, movesCount: moveReceiver.count, capturePermission: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'not-required' };
 }
 function broadcast() {
@@ -184,9 +184,9 @@ void app.whenReady().then(async () => {
     if (['screen', 'direct', 'moves'].includes(value.mode) && value.mode !== mode) { mode = value.mode; bridge.reset(); screenSeen = 0; controller.invalidate(); }
     if (typeof value.paused === 'boolean') setPause(value.paused);
     if (typeof value.sound === 'boolean' || typeof value.volume === 'number' || typeof value.duration === 'number' ||
-      typeof value.stopOnMove === 'boolean' || value.selection !== undefined || value.selectedId !== undefined) {
+      typeof value.stopOnMove === 'boolean' || value.selection !== undefined || value.selectedId !== undefined || value.activeIds !== undefined || value.includeTone !== undefined) {
       soundStore.configure({ enabled: value.sound, volume: value.volume, duration: value.duration, stopOnMove: value.stopOnMove,
-        selection: value.selection, selectedId: value.selectedId });
+        selection: value.selection, selectedId: value.selectedId, activeIds: value.activeIds, includeTone: value.includeTone });
     }
     if (typeof value.collapsed === 'boolean') collapsed = value.collapsed;
     if (typeof value.movable === 'boolean') movable = value.movable;
@@ -292,13 +292,18 @@ async function runSoundSmoke() {
   if (JSON.stringify(soundStore.settings) !== beforeCancel) throw Error('Cancel changed the library');
   sources.forEach(file => fs.rmSync(file));
   const [first, second] = soundStore.settings.tracks;
+  if (soundStore.settings.includeTone || soundStore.settings.activeIds.length !== 2) throw Error('Imported music did not replace the default tone selection');
   await configure({ sound: true, volume: 12, duration: 1, selectedId: first.id });
   const saved = new SoundStore(app.getPath('userData'));
   if (saved.settings.tracks.length !== 2 || saved.settings.volume !== 12 || saved.read()?.name !== first.name) throw Error('Managed library did not persist independently of source files');
   const rendered = await js(`document.getElementById('sound-name').textContent`);
   if (rendered !== first.name) throw Error('Selected track name did not render');
   await js(`
-    window.__hudAudio = { plays: 0, last: null };
+    window.__hudAudio = { plays: 0, tones: 0, last: null };
+    const NativeContext = window.AudioContext;
+    window.AudioContext = class extends NativeContext {
+      constructor(...args) { super(...args); window.__hudAudio.tones++; }
+    };
     const originalPlay = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () {
       window.__hudAudio.plays++; window.__hudAudio.last = this;
@@ -338,15 +343,42 @@ async function runSoundSmoke() {
   if (soundStore.read() !== null || soundStore.settings.tracks.length !== 2) throw Error('Standard tone reset removed the library');
   await js(`document.getElementById('preview-sound').click()`); await wait(450);
   if ((await js(`document.getElementById('sound-message').textContent`)).includes('Не удалось')) throw Error('Built-in tone failed');
+  const waitPlaylist = async (ids: string[], tone: boolean) => {
+    const deadline = Date.now() + 4000;
+    while (Date.now() < deadline) {
+      const settings = soundStore.settings;
+      const busy = await js(`document.getElementById('choose-sound').disabled`);
+      if (!busy && settings.includeTone === tone && settings.activeIds.length === ids.length && ids.every(id => settings.activeIds.includes(id))) return;
+      await wait(25);
+    }
+    throw Error('Checkbox playlist did not finish saving');
+  };
+  await js(`document.getElementById('sound-tone').click()`);
+  await waitPlaylist([], false);
+  const beforeSilent = await js('window.__hudAudio.plays');
+  const beforeSilentTones = await js('window.__hudAudio.tones');
+  await notify(); await audible(false, 'An empty playlist played a fallback tone');
+  if (await js('window.__hudAudio.plays') !== beforeSilent || await js('window.__hudAudio.tones') !== beforeSilentTones) throw Error('Empty playlist attempted audio playback');
+  // Consecutive synchronous clicks must not lose the latest checkbox snapshot.
+  await js(`
+    const boxes = [...document.querySelectorAll('input[data-sound-track]')];
+    boxes[0].click(); boxes[1].click(); boxes[0].click();
+  `);
+  await waitPlaylist([second.id], false);
+  for (let i = 0; i < 8; i++) if (soundStore.read()?.name !== second.name) throw Error('An unchecked track or tone entered the playlist');
   await configure({ selectedId: first.id });
-  await js(`document.getElementById('remove-sound').click()`); await wait(200);
+  await js(`document.querySelector('button[data-remove-sound="${first.id}"]').click()`); await wait(200);
   const afterRemoval = new SoundStore(app.getPath('userData')).settings;
-  if (afterRemoval.tracks.length !== 1 || afterRemoval.selectedId !== second.id) throw Error('Removing one track damaged the remaining library');
-  await configure({ duration: 0, stopOnMove: false, selection: 'random' });
+  if (afterRemoval.tracks.length !== 1 || afterRemoval.activeIds.length || afterRemoval.includeTone) throw Error('Removing the selected track enabled an unchecked sound');
+  await configure({ duration: 0, stopOnMove: false, activeIds: [second.id], includeTone: false });
+  await new Promise<void>(resolve => { controls.webContents.once('did-finish-load', () => resolve()); controls.webContents.reload(); });
+  await wait(100);
+  const restored = await js(`({tone:document.getElementById('sound-tone').checked, checked:[...document.querySelectorAll('input[data-sound-track]:checked')].map(el=>el.value)})`);
+  if (restored.tone || restored.checked.length !== 1 || restored.checked[0] !== second.id) throw Error('Checkbox selection did not survive renderer reload');
   const out = path.resolve(__dirname, '../test-results'); fs.mkdirSync(out, { recursive: true });
   await js(`document.getElementById('sound-panel').open=true; document.getElementById('sound-message').textContent=''; window.scrollTo(0,0)`);
   fs.writeFileSync(path.join(out, 'sound-settings.png'), (await controls.webContents.capturePage()).toPNG());
-  console.log('HUD sound smoke PASS: multi-import and invalid media, cancellation, persistent managed library, real hidden-window playback, numeric/full duration, natural end, move-stop on/off, no overlap/restart, random mode, mute/pause/source loss/switch, preview/stop, reset retaining tracks and individual removal.');
+  console.log('HUD sound smoke PASS: multi-import, real playback and duration/move policies, checked subset only, deselected tone, empty playlist silence, rapid checkbox saves, removal without fallback, and persistent selection after reload.');
 }
 
 async function runSmoke() {

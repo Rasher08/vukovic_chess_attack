@@ -6,6 +6,7 @@ export interface SoundTrack { id: string; name: string }
 export interface SoundSettings {
   enabled: boolean; volume: number; duration: number; stopOnMove: boolean;
   selection: 'selected' | 'random'; selectedId: string | null; tracks: SoundTrack[];
+  activeIds: string[]; includeTone: boolean;
   name: string | null; revision: string;
 }
 export interface SoundAsset { name: string; dataUrl: string }
@@ -13,6 +14,7 @@ export interface SoundChoice extends SoundAsset { id: string }
 export interface SoundConfiguration {
   enabled?: boolean; volume?: number; duration?: number; stopOnMove?: boolean;
   selection?: 'selected' | 'random'; selectedId?: string | null;
+  activeIds?: string[]; includeTone?: boolean;
 }
 const MIME: Record<string, string> = { '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.flac': 'audio/flac' };
 export const MAX_SOUND_BYTES = 12 * 1024 * 1024;
@@ -21,17 +23,17 @@ export const MAX_SOUND_LIBRARY_BYTES = 120 * 1024 * 1024;
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 export const DEFAULT_SOUND_SETTINGS: SoundSettings = {
   enabled: false, volume: 35, duration: 5, stopOnMove: true,
-  selection: 'selected', selectedId: null, tracks: [], name: null, revision: '',
+  selection: 'selected', selectedId: null, tracks: [], activeIds: [], includeTone: true, name: null, revision: '',
 };
 type Track = SoundTrack & { mime: string; size: number };
-type Saved = Pick<SoundSettings, 'enabled' | 'volume' | 'duration' | 'stopOnMove' | 'selection' | 'selectedId'> & { version: 2; tracks: Track[] };
+type Saved = Pick<SoundSettings, 'enabled' | 'volume' | 'duration' | 'stopOnMove' | 'selection' | 'selectedId' | 'activeIds' | 'includeTone'> & { version: 3; tracks: Track[] };
 const validDuration = (value: unknown): value is number => Number.isInteger(value) && Number(value) >= 0 && Number(value) <= 600;
 
 /** User-picked files are copied into a bounded library only after media validation. */
 export class SoundStore {
   private saved: Saved = {
-    version: 2, enabled: false, volume: 35, duration: 5, stopOnMove: true,
-    selection: 'selected', selectedId: null, tracks: [],
+    version: 3, enabled: false, volume: 35, duration: 5, stopOnMove: true,
+    selection: 'selected', selectedId: null, tracks: [], activeIds: [], includeTone: true,
   };
   private pending = new Map<string, Track & { bytes: Buffer }>();
   private cached = new Map<string, SoundAsset>();
@@ -50,16 +52,16 @@ export class SoundStore {
       if (raw.length > 100_000) { this.writable = false; return; }
       const value = JSON.parse(raw);
       if (!value || typeof value !== 'object' || Array.isArray(value) ||
-        ![undefined, 1, 2].includes(value.version) || (value.version === 2 && !Array.isArray(value.tracks)) ||
-        (value.version !== 2 && Object.prototype.hasOwnProperty.call(value, 'tracks'))) {
+        ![undefined, 1, 2, 3].includes(value.version) || (value.version >= 2 && !Array.isArray(value.tracks)) ||
+        (value.version === 3 && (!Array.isArray(value.activeIds) || !value.activeIds.every((id: unknown) => typeof id === 'string') || typeof value.includeTone !== 'boolean')) ||
+        (!(value.version >= 2) && Object.prototype.hasOwnProperty.call(value, 'tracks'))) {
         this.writable = false; return;
       }
       this.saved.enabled = value.enabled === true;
       if (Number.isInteger(value.volume) && value.volume >= 0 && value.volume <= 100) this.saved.volume = value.volume;
       if (validDuration(value.duration)) this.saved.duration = value.duration;
       if (typeof value.stopOnMove === 'boolean') this.saved.stopOnMove = value.stopOnMove;
-      if (value.selection === 'random') this.saved.selection = 'random';
-      const candidates: unknown[] = value.version === 2 ? value.tracks : value.asset ? [value.asset] : [];
+      const candidates: unknown[] = value.version >= 2 ? value.tracks : value.asset ? [value.asset] : [];
       let total = 0;
       for (const candidate of candidates) {
         if (this.saved.tracks.length >= MAX_SOUND_TRACKS) break;
@@ -71,18 +73,24 @@ export class SoundStore {
           this.saved.tracks.push({ id: a.id!, name: a.name.slice(0, 180), mime: a.mime!, size: stat.size }); total += stat.size;
         } catch { /* One missing track must not discard the rest of the library. */ }
       }
-      const selected = value.version === 2 ? value.selectedId : value.asset?.id;
-      this.saved.selectedId = this.saved.tracks.some(track => track.id === selected) ? selected : null;
-      // Keep the surviving library useful when the previously selected file disappeared.
-      if (selected && this.saved.selectedId === null) this.saved.selectedId = this.saved.tracks[0]?.id ?? null;
-      if (!this.saved.tracks.length) this.saved.selection = 'selected';
+      const selected = value.version >= 2 ? value.selectedId : value.asset?.id;
+      if (value.version === 3) {
+        this.saved.activeIds = [...new Set<string>(value.activeIds)].filter(id => this.saved.tracks.some(track => track.id === id));
+        this.saved.includeTone = value.includeTone;
+      } else if (value.version === 2 && value.selection === 'random') {
+        this.saved.activeIds = this.saved.tracks.map(track => track.id); this.saved.includeTone = false;
+      } else if (selected) {
+        this.saved.activeIds = this.saved.tracks.some(track => track.id === selected) ? [selected] : [];
+        this.saved.includeTone = false;
+      }
+      this.saved = this.withPlaylist(this.saved, selected);
     } catch { this.writable = false; }
   }
   get settings(): SoundSettings {
-    const { enabled, volume, duration, stopOnMove, selection, selectedId, tracks } = this.saved;
-    return { enabled, volume, duration, stopOnMove, selection, selectedId,
+    const { enabled, volume, duration, stopOnMove, selection, selectedId, tracks, activeIds, includeTone } = this.saved;
+    return { enabled, volume, duration, stopOnMove, selection, selectedId, activeIds: [...activeIds], includeTone,
       tracks: tracks.map(({ id, name }) => ({ id, name })), name: tracks.find(track => track.id === selectedId)?.name ?? null,
-      revision: tracks.length ? `${selection}:${selectedId ?? ''}:${tracks.map(track => track.id).join(',')}` : '' };
+      revision: `${selection}:${selectedId ?? ''}:${includeTone ? 'tone' : ''}:${activeIds.join(',')}:${tracks.map(track => track.id).join(',')}` };
   }
   configure(value: SoundConfiguration) {
     const next = { ...this.saved };
@@ -92,10 +100,22 @@ export class SoundStore {
     if (typeof value.stopOnMove === 'boolean') next.stopOnMove = value.stopOnMove;
     if (value.selectedId !== undefined) {
       if (value.selectedId !== null && !this.saved.tracks.some(track => track.id === value.selectedId)) throw Error('Этот трек не найден в библиотеке.');
-      next.selectedId = value.selectedId!; next.selection = 'selected';
+      next.activeIds = value.selectedId === null ? [] : [value.selectedId!]; next.includeTone = value.selectedId === null;
     }
-    if (value.selection === 'selected' || value.selection === 'random') next.selection = value.selection;
-    this.persist(next);
+    if (value.selection === 'random') { next.activeIds = next.tracks.map(track => track.id); next.includeTone = false; }
+    else if (value.selection === 'selected' && value.selectedId === undefined) {
+      next.activeIds = next.selectedId ? [next.selectedId] : []; next.includeTone = next.selectedId === null;
+    }
+    if (value.activeIds !== undefined) {
+      if (!Array.isArray(value.activeIds) || value.activeIds.some(id => typeof id !== 'string' || !next.tracks.some(track => track.id === id))) throw Error('В выбранном списке есть трек, которого нет в библиотеке.');
+      next.activeIds = [...new Set(value.activeIds)];
+    }
+    if (value.includeTone !== undefined) {
+      if (typeof value.includeTone !== 'boolean') throw Error('Некорректная настройка стандартного звука.');
+      next.includeTone = value.includeTone;
+    }
+    const playlistChanged = value.activeIds !== undefined || value.includeTone !== undefined || value.selectedId !== undefined || value.selection !== undefined;
+    this.persist(this.withPlaylist(next, playlistChanged ? undefined : next.selectedId));
   }
   stage(file: string): SoundChoice {
     this.assertWritable();
@@ -123,7 +143,8 @@ export class SoundStore {
       descriptor = fs.openSync(file, 'wx'); created = true;
       fs.writeFileSync(descriptor, candidate.bytes); fs.closeSync(descriptor); descriptor = undefined;
       const { bytes: _bytes, ...track } = candidate;
-      this.persist({ ...this.saved, tracks: [...this.saved.tracks, track], selectedId: id, selection: 'selected' });
+      this.persist(this.withPlaylist({ ...this.saved, tracks: [...this.saved.tracks, track],
+        activeIds: [...this.saved.activeIds, id], includeTone: this.saved.activeIds.length ? this.saved.includeTone : false }, id));
     } catch (error) {
       if (descriptor !== undefined) fs.closeSync(descriptor);
       if (created) this.cleanup(file);
@@ -135,27 +156,28 @@ export class SoundStore {
   /** Discard failed media probes without retaining their bytes in memory. */
   discard(id: string) { this.pending.delete(id); }
   reset() {
-    this.persist({ ...this.saved, selection: 'selected', selectedId: null });
+    this.persist(this.withPlaylist({ ...this.saved, activeIds: [], includeTone: true }));
     this.pending.clear();
   }
   remove(id: string) {
     const previous = this.saved.tracks.find(track => track.id === id);
     if (!previous) throw Error('Этот трек не найден в библиотеке.');
     const tracks = this.saved.tracks.filter(track => track.id !== id);
-    const selectedId = this.saved.selectedId === id ? tracks[0]?.id ?? null : this.saved.selectedId;
-    this.persist({ ...this.saved, tracks, selectedId, selection: tracks.length ? this.saved.selection : 'selected' });
+    this.persist(this.withPlaylist({ ...this.saved, tracks, activeIds: this.saved.activeIds.filter(activeId => activeId !== id) }, this.saved.selectedId));
     this.pending.delete(id); this.cached.delete(id); this.cleanup(this.assetPath(id));
   }
   read(id?: string): SoundAsset | null {
-    let selected = id;
+    let selected: string | null | undefined = id;
     if (selected === undefined) {
-      if (this.saved.selection === 'random' && this.saved.tracks.length) {
+      const candidates: (string | null)[] = [...this.saved.activeIds, ...(this.saved.includeTone ? [null] : [])];
+      if (!candidates.length) throw Error('Не выбран ни один звук. Отметьте музыку или стандартный звук.');
+      if (candidates.length > 1) {
         const random = (this.options.random || Math.random)();
         if (!Number.isFinite(random) || random < 0 || random >= 1) throw Error('Не удалось выбрать случайный трек.');
-        selected = this.saved.tracks[Math.floor(random * this.saved.tracks.length)].id;
-      } else selected = this.saved.selectedId ?? undefined;
+        selected = candidates[Math.floor(random * candidates.length)];
+      } else selected = candidates[0];
     }
-    if (selected === undefined) return null;
+    if (selected === null) return null;
     const a = this.saved.tracks.find(track => track.id === selected);
     if (!a) throw Error('Этот трек не найден в библиотеке.');
     const cached = this.cached.get(selected);
@@ -168,6 +190,10 @@ export class SoundStore {
     this.cache(selected, asset); return { ...asset };
   }
   private assetPath(id: string) { return path.join(this.directory, `sound-${id}`); }
+  private withPlaylist(value: Saved, preferredId?: string | null): Saved {
+    return { ...value, selection: value.activeIds.length + Number(value.includeTone) > 1 ? 'random' : 'selected',
+      selectedId: preferredId && value.activeIds.includes(preferredId) ? preferredId : value.activeIds[0] ?? null };
+  }
   private cache(id: string, asset: SoundAsset) {
     if (!this.cached.has(id) && this.cached.size >= 2) this.cached.delete(this.cached.keys().next().value!);
     this.cached.set(id, asset);

@@ -4,6 +4,7 @@ import { NotificationSoundPlayer, shouldStopSound } from '../ui/sound';
 
 const settings: SoundSettings = {
   enabled: true, volume: 45, duration: 0, stopOnMove: false,
+  activeIds: ['track-a'], includeTone: false,
   selection: 'selected', selectedId: 'track-a', tracks: [{ id: 'track-a', name: 'A.mp3' }],
   name: 'A.mp3', revision: 'selected:track-a',
 };
@@ -22,7 +23,7 @@ for (const status of ['unknown', 'error', 'paused'] as const) {
 }
 assert.equal(shouldStopSound(position, { ...position, sound: false }), true);
 assert.equal(shouldStopSound(position, { ...position, mode: 'moves' }), true);
-for (const change of [{ volume: 60 }, { duration: 10 }, { selection: 'random' as const }, { selectedId: null }]) {
+for (const change of [{ volume: 60 }, { duration: 10 }, { selection: 'random' as const }, { selectedId: null }, { activeIds: [] }, { includeTone: true }]) {
   assert.equal(shouldStopSound(position, { ...position, soundSettings: { ...settings, ...change } }), true,
     'A changed playback setting withdraws old audio, including pending loads');
 }

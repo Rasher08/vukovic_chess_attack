@@ -10,14 +10,11 @@
   <details id="sound-panel" class="sound-panel">
     <summary>Звук уведомления <span id="sound-name">Стандартный сигнал</span></summary>
     <div class="row"><button id="choose-sound">Добавить свои файлы…</button><button id="preview-sound">Прослушать</button><button id="stop-sound">Стоп</button><button id="reset-sound">Стандартный сигнал</button></div>
-    <div class="row sound-library">
-      <label>Воспроизведение <select id="sound-selection"><option value="selected">Выбранный трек</option><option value="random">Случайный трек</option></select></label>
-      <label class="sound-track-label">Трек <select id="sound-track" aria-label="Выбранный аудиотрек"><option value="">Стандартный сигнал</option></select></label>
-      <button id="remove-sound" disabled>Удалить выбранный</button>
-    </div>
+    <div id="sound-tracks" class="sound-tracks" role="group" aria-label="Звуки уведомлений"></div>
+    <p id="sound-playlist-status" class="note" role="status">Отметьте звуки, которые хотите слышать.</p>
     <div class="row sound-options"><label for="sound-volume">Громкость <input id="sound-volume" type="range" min="0" max="100" step="1" value="35"><output id="sound-volume-value" for="sound-volume">35%</output></label><label>Длительность <select id="sound-length"><option value="limited">Заданное время</option><option value="full">До конца трека</option></select></label><label id="sound-seconds-label">Секунды <input id="sound-duration" type="number" min="1" max="600" step="1" value="5" inputmode="numeric"></label></div>
     <label class="sound-stop-policy"><input id="sound-stop-on-move" type="checkbox" checked> Останавливать музыку после сделанного хода</label>
-    <p class="note">Добавьте свои MP3, WAV, OGG, M4A, AAC или FLAC: до 20 файлов, до 12 МБ каждый, всего до 120 МБ. Случайный трек выбирается при каждом уведомлении. Остановка после хода прерывает и режим «До конца трека»; пауза, выключение звука и потеря источника всегда останавливают музыку. Библиотека и настройки сохраняются. Для уведомлений включите «Звук» выше.</p>
+    <p class="note">Один отмеченный звук играет всегда, несколько — в случайном порядке, без галочек будет тишина. Стандартный сигнал тоже можно снять. Добавьте свои MP3, WAV, OGG, M4A, AAC или FLAC: до 20 файлов, до 12 МБ каждый, всего до 120 МБ. Остановка после хода прерывает и режим «До конца трека»; пауза, выключение звука и потеря источника всегда останавливают музыку. Библиотека и настройки сохраняются. Для уведомлений включите «Звук» выше.</p>
     <p id="sound-message" class="note" role="status"></p>
   </details>
   <nav><button id="moves-tab" class="active">Ходы Chess.com</button><button id="direct-tab">Из nonchalant</button><button id="screen-tab">Доска на экране</button></nav>

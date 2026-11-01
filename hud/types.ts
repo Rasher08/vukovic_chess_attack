@@ -17,7 +17,7 @@ export interface HudAPI {
   sources(): Promise<{ id: string; name: string; thumbnail: string }[]>;
   selectSource(id: string): Promise<void>;
   screenPosition(fen: string | null, issue?: ScreenIssue): void;
-  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; stopOnMove?: boolean; selection?: 'selected' | 'random'; selectedId?: string | null; collapsed?: boolean; movable?: boolean }): Promise<void>;
+  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; stopOnMove?: boolean; selection?: 'selected' | 'random'; selectedId?: string | null; activeIds?: string[]; includeTone?: boolean; collapsed?: boolean; movable?: boolean }): Promise<void>;
   chooseSound(): Promise<SoundChoice | null>;
   chooseSounds(): Promise<SoundChoice[]>;
   confirmSound(id: string): Promise<void>;
