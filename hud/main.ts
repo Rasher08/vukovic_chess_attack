@@ -393,7 +393,7 @@ async function runSmoke() {
     if (rendered.includes('Есть сильная жертва')) throw Error('Unexpected hint');
   }
   // Exercise the real authenticated local HTTP -> controller -> Stockfish -> HUD path.
-  const fixture = 'rn1qkb1r/ppp2ppp/3p4/4p3/2B3b1/2P2N2/PPP2PPP/R1BQK2R w KQkq - 0 15';
+  const fixture = 'r2q1b1r/pp1np1pk/2p2n1p/8/2BP2N1/8/PPP2PPP/R1BQK2R w KQ - 3 11';
   let sequence = 0;
   const post = async (fen: string | null) => {
     const address = server.address();
@@ -429,9 +429,9 @@ async function runSmoke() {
   const modeDeadline = Date.now() + 3000;
   while (mode !== 'moves' && Date.now() < modeDeadline) await new Promise(resolve => setTimeout(resolve, 20));
   if (mode !== 'moves') throw Error('Text source did not activate');
-  const sans = ['e4','e5','Nf3','Nf6','Nxe5','Nc6','Nxc6','dxc6','d3','Bc5','Bg5'];
+  const sans = ['d4','c6','e4','d5','Nc3','dxe4','Nxe4','Nf6','Ng5','h6','Nxf7','Kxf7','Nf3','Bg4','Ne5+','Kg8','Nxg4','Nbd7','Bc4+','Kh7','Qd3+','g6'];
   const board = new Chess(); sans.forEach(san => board.move(san));
-  if (board.fen() !== 'r1bqk2r/ppp2ppp/2p2n2/2b3B1/4P3/3P4/PPP2PPP/RN1QKB1R b KQkq - 2 6') throw Error('Text fixture does not reconstruct the expected FEN');
+  if (board.fen() !== 'r2q1b1r/pp1np2k/2p2npp/8/2BP2N1/3Q4/PPP2PPP/R1B1K2R w KQ - 0 12') throw Error('Text fixture does not reconstruct the expected FEN');
   let textSequence = 0;
   const textPost = async (ready = true) => {
     const address = server.address(); if (!address || typeof address === 'string') throw Error('Text server missing');
@@ -468,5 +468,5 @@ async function runSmoke() {
   await new Promise<void>(resolve => { controls.webContents.once('did-finish-load', () => resolve()); controls.webContents.reload(); });
   const restored = await controls.webContents.executeJavaScript(`({orientation:document.getElementById('orientation').value, ready:!document.getElementById('region').disabled, known:document.getElementById('confirmed').checked})`);
   if (restored.orientation !== 'black' || !restored.ready || restored.known) throw Error('Persisted screen setup lost or unconfirmed FEN trusted');
-  console.log('HUD smoke PASS: native windows, all statuses, authenticated HTTP/FEN and text replay, real Stockfish, boolean-only HUD, immediate withdrawal. Screen permission: ' + state().capturePermission);
+  console.log('HUD smoke PASS: native windows, all statuses, reported Nxh6 via authenticated HTTP/FEN and Bf7 via22-ply text replay, real Stockfish, boolean-only HUD, immediate withdrawal. Screen permission: ' + state().capturePermission);
 }

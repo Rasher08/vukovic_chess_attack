@@ -1,4 +1,4 @@
-# Tal HUD Mentality · 0.1.8
+# Tal HUD Mentality · 0.1.9
 
 Локальный шахматный HUD для поиска корректных жертв с достаточной компенсацией.
 Показывает только «Есть сильная жертва». Сам ход, фигура, оценка и варианты
@@ -9,19 +9,20 @@
 кандидат проверяется один раз на глубине 22, вместе со всеми вариантами принятия
 и сильнейшей защитой. Пешечные жертвы, жертвы качества и фигур рассматриваются
 при чистом материальном вложении от одной пешки. Обычный равноценный размен
-и неподтверждённая атака не дают сигнал.
+и неподтверждённая атака не дают сигнал. Сильный ход может предлагать
+не только сходившую фигуру, но и другую фигуру, оставленную под боем.
 
-## Скачать 0.1.8 для Windows
+## Скачать 0.1.9 для Windows
 
-[Установщик — Setup](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.8/Tal-HUD-Mentality-0.1.8-setup.exe) ·
-[Portable без установки](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.8/Tal-HUD-Mentality-0.1.8-portable.exe) ·
-[Страница релиза](https://github.com/Rasher08/vukovic_chess_attack/releases/tag/v0.1.8).
+[Установщик — Setup](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.9/Tal-HUD-Mentality-0.1.9-setup.exe) ·
+[Portable без установки](https://github.com/Rasher08/vukovic_chess_attack/releases/download/v0.1.9/Tal-HUD-Mentality-0.1.9-portable.exe) ·
+[Страница релиза](https://github.com/Rasher08/vukovic_chess_attack/releases/tag/v0.1.9).
 
 Достаточно одного EXE для Windows 10/11 x64. Node.js, Python и отдельный
 Stockfish не нужны. Перед обновлением завершите старый HUD через значок в трее;
 музыка и настройки сохраняются. Расширение переустанавливать не нужно.
 
-[Изменения Tal HUD Mentality 0.1.8](hud/RELEASE-0.1.8.md) ·
+[Изменения Tal HUD Mentality 0.1.9](hud/RELEASE-0.1.9.md) ·
 [Короткая инструкция](hud/QUICKSTART-WINDOWS.txt).
 
 ## Мини-гайд
@@ -39,7 +40,7 @@ Stockfish не нужны. Перед обновлением завершите 
 начальной расстановки; для своей позиции нужен FEN до первого записанного хода.
 
 [Короткая инструкция](hud/QUICKSTART-WINDOWS.txt) ·
-[Изменения 0.1.8 и ограничения](hud/RELEASE-0.1.8.md).
+[Изменения 0.1.9 и ограничения](hud/RELEASE-0.1.9.md).
 
 | Windows | Действие |
 | --- | --- |

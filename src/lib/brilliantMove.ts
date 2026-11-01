@@ -54,12 +54,13 @@ export function inspectSacrifice(fenBefore: string, uci: string): SacrificeCandi
   return inspectMaterialOffer(fenBefore, uci, MIN_INVESTMENT_CP, false);
 }
 
-/** Tal HUD includes pawn and exchange offers; equal trades still invest zero. */
+/** Tal includes pawn/exchange offers and strong moves leaving another piece
+ * en prise. Preserve the direct-offer path; equal trades still invest zero. */
 export function inspectSoundSacrifice(fenBefore: string, uci: string): SacrificeCandidate | null {
-  return inspectMaterialOffer(fenBefore, uci, 100, true);
+  return inspectMaterialOffer(fenBefore, uci, 100, true) ?? inspectMaterialOffer(fenBefore, uci, 100, true, true);
 }
 
-function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, allowPawns: boolean): SacrificeCandidate | null {
+function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, allowPawns: boolean, otherPieces = false): SacrificeCandidate | null {
   try {
     if (!UCI.test(uci)) return null;
     const game = new Chess(fenBefore);
@@ -68,10 +69,10 @@ function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, a
     const learner = game.turn();
     const rootMaterial = material(game, learner);
     const move = play(game, uci);
-    if ((!allowPawns && move.piece === 'p') || move.piece === 'k' || move.promotion || game.isGameOver()) return null;
+    if ((!allowPawns && move.piece === 'p') || (!otherPieces && move.piece === 'k') || move.promotion || game.isGameOver()) return null;
     const fenAfterMove = game.fen();
-    const captures = game.moves({ verbose: true }).filter(reply => reply.to === move.to && reply.captured === move.piece);
-    if (!captures.length || captures.length > 4) return null;
+    const captures = game.moves({ verbose: true }).filter(reply => otherPieces ? Boolean(reply.captured) : reply.to === move.to && reply.captured === move.piece);
+    if (!captures.length || (!otherPieces && captures.length > 4)) return null;
     const acceptances = captures.map(capture => {
       const after = new Chess(fenAfterMove);
       after.move(capture);
@@ -88,8 +89,8 @@ function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, a
         uci: `${capture.from}${capture.to}${capture.promotion || ''}`, san: capture.san,
         fenAfterAcceptance, investmentCp: Math.max(0, rootMaterial - bestImmediateMaterial),
       };
-    });
-    if (!acceptances.some(acceptance => acceptance.investmentCp >= minimum)) return null;
+    }).filter(acceptance => !otherPieces || acceptance.investmentCp >= minimum);
+    if (acceptances.length > 4 || !acceptances.some(acceptance => acceptance.investmentCp >= minimum)) return null;
     return { fenBefore: new Chess(fenBefore).fen(), fenAfterMove, uci, san: move.san, piece: move.piece, learner, acceptances };
   } catch { return null; }
 }
@@ -272,7 +273,7 @@ async function verifyMaterialOffer(
     const investment = (offer.investmentCp / 100).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
     return {
       brilliant: true,
-      reason: `Жертва ${NAMES[inspected.piece]}: ${inspected.san}. Материальная уступка при ${offer.san}: около ${investment} п. с учётом возможного немедленного обратного взятия. ${shortMate ? 'Полный перебор легальных защит подтверждает мат следующим ходом после любого ответа на жертву. ' : ''}${profile === 'sound-sacrifice' ? 'Усиленная проверка предложения и принятия подтверждает достаточную компенсацию по критериям Tal HUD Mentality.' : 'Усиленная проверка принятия сохраняет оценку; это критерий «!!» nonchalant.'}`,
+      reason: `${profile === 'sound-sacrifice' ? `Ход ${inspected.san} допускает жертву материала` : `Жертва ${NAMES[inspected.piece]}: ${inspected.san}`}. Материальная уступка при ${offer.san}: около ${investment} п. с учётом возможного немедленного обратного взятия. ${shortMate ? 'Полный перебор легальных защит подтверждает мат следующим ходом после любого ответа на жертву. ' : ''}${profile === 'sound-sacrifice' ? 'Усиленная проверка предложения и принятия подтверждает достаточную компенсацию по критериям Tal HUD Mentality.' : 'Усиленная проверка принятия сохраняет оценку; это критерий «!!» nonchalant.'}`,
     };
   } catch (caught) {
     abortIfNeeded(options.signal);

@@ -124,6 +124,23 @@ async function run() {
       for (const depth of [22]) assert(traces.some(t => t.fen === offer.fenAfterMove && t.options.depth === depth && !t.options.searchMoves), 'Independent strongest defense is retained at depth22');
     }
     console.log('PASS reported Konoxa29...Qg1+: Tal quality, HUD depth22, strongest defense and both colors.');
+    const dg = new Chess();
+    dg.loadPgn(readFileSync(new URL('../../tests/fixtures/konoxa-dg5167-2026-11-01.pgn', import.meta.url), 'utf8'));
+    const dgHistory = dg.history({ verbose: true });
+    for (const item of [
+      { fen: dgHistory[20].before, move: 'g4h6', san: 'Nxh6' },
+      { fen: dgHistory[22].before, move: 'c4f7', san: 'Bf7' },
+    ]) {
+      const begin = engine.traces.length;
+      assert.deepEqual(await detectSacrifice(item.fen, engine, new AbortController().signal), { brilliant: true }, item.san);
+      const traces = engine.traces.slice(begin), offer = inspectSoundSacrifice(item.fen, item.move)!;
+      assert(offer);
+      assert(traces.some(t => t.fen === item.fen && t.options.depth === 22 && t.result.bestMove === item.move));
+      for (const acceptance of offer.acceptances) assert(traces.some(t => t.fen === acceptance.fenAfterAcceptance && t.options.depth === 22 && t.result.depth >= 22), 'Every sacrifice acceptance is actually searched');
+      assert(traces.some(t => t.fen === offer.fenAfterMove && t.options.depth === 22 && !t.options.searchMoves), 'Unrestricted defense checked even for a quiet other-piece offer');
+      assert(!traces.some(t => t.options.depth === 20), 'Depth22 remains the only quality pass');
+    }
+    console.log('PASS reported11.Nxh6 and12.Bf7: capture of the unmoved knight verified, strongest defense retained, depth22 only.');
     const qg = new Chess(); qg.move('d4'); qg.move('d5');
     const newOffers = [
       { fen: qg.fen(), move: 'c2c4', investment: 100, label: 'Queen’s Gambit pawn compensation' },

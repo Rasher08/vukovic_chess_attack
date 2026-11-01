@@ -1,0 +1,15 @@
+[Site "Chess.com"]
+[Date "2026-11-01"]
+[White "konoxa"]
+[Black "dg_5167"]
+[Result "1-0"]
+[WhiteElo "1139"]
+[BlackElo "1132"]
+[TimeControl "900+10"]
+
+1. d4 c6 2. e4 d5 3. Nc3 dxe4 4. Nxe4 Nf6 5. Ng5 h6 6. Nxf7 Kxf7 7. Nf3 Bg4
+8. Ne5+ Kg8 9. Nxg4 Nbd7 10. Bc4+ Kh7 11. Qd3+ g6 12. Bf7 Rg8 13. Bxg8+ Nxg8
+14. O-O h5 15. Ne5 Nxe5 16. dxe5 Qa5 17. f4 Rd8 18. b4 Qb6+ 19. Be3 Rxd3
+20. Bxb6 Rc3 21. Bxa7 Rxc2 22. Rf2 Rc4 23. a3 e6 24. Rd1 c5 25. Rd7+ Kh6
+26. Rd8 Kg7 27. Rd7+ Kh6 28. Rc7 Rc1+ 29. Rf1 Rxf1+ 30. Kxf1 cxb4
+31. Rxb7 bxa3 32. Bd4 Ne7 33. Bc5 a2 34. Ra7 Nc6 35. Bxf8# 1-0

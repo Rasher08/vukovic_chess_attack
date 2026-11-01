@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { Chess } from 'chess.js';
+import { readFileSync } from 'node:fs';
 import { inspectSacrifice, inspectSoundSacrifice, verifyBrilliantMove, verifySoundSacrifice, type SacrificeCandidate } from '../src/lib/brilliantMove';
 import type { EngineLike, EngineResult } from '../src/lib/autoTraining';
 import { NodeEngine } from '../hud/core/nodeEngine';
@@ -23,6 +24,34 @@ assert.equal(inspectSoundSacrifice('4k3/8/2p5/3n4/2B5/8/8/4K3 w - - 0 1', 'c4d5'
 assert.equal(inspectSoundSacrifice('7k/8/8/8/2b5/8/1B6/K6r w - - 0 1', 'b2c1'), null);
 assert.equal(inspectSoundSacrifice('7k/5Q2/6K1/8/8/8/8/8 w - - 0 1', 'f7e6'), null, 'Stalemating the defender is not a sound winning sacrifice');
 
+const reported = new Chess();
+reported.loadPgn(readFileSync(new URL('./fixtures/konoxa-dg5167-2026-11-01.pgn', import.meta.url), 'utf8'));
+const reportedHistory = reported.history({ verbose: true });
+const quiet = inspectSoundSacrifice(reportedHistory[22].before, 'c4f7')!;
+assert(quiet, 'Bf7 leaves a different piece available for capture');
+assert.equal(quiet.san, 'Bf7');
+assert.equal(quiet.acceptances.length, 1);
+assert.equal(quiet.acceptances[0].san, 'Nxg4');
+assert.equal(quiet.acceptances[0].investmentCp, 320, 'The sacrificed knight did not move');
+assert.equal(inspectSacrifice(quiet.fenBefore, quiet.uci), null, 'Website direct-sacrifice scope is unchanged');
+assert.equal(inspectSoundSacrifice('4k3/8/8/8/1b6/2N5/1P6/R3K3 w - - 0 1', 'a1a2'), null,
+  'Leaving another defended piece available for an equal trade is not a sacrifice');
+const nh6 = inspectSoundSacrifice(reportedHistory[20].before, 'g4h6')!;
+assert(nh6 && nh6.san === 'Nxh6');
+assert.equal(nh6.acceptances[0].investmentCp, 120, 'The existing direct pawn-adjusted offer stays recognized');
+
+const multiple = inspectSoundSacrifice('4k2r/8/8/8/1b6/2N4B/8/R3K3 w - - 0 1', 'a1a2')!;
+assert(multiple && multiple.acceptances.length === 2, 'Both offered pieces must be retained for verification');
+assert.equal(inspectSoundSacrifice('K3k3/8/8/8/8/2q3q1/1PPPPPPP/R7 w - - 0 1', 'a1a4'), null,
+  'Do not silently truncate more than four meaningful acceptance branches');
+const mirrorParts = quiet.fenBefore.split(' ');
+const flip = (s: string) => s.replace(/[a-zA-Z]/g, c => c === c.toUpperCase() ? c.toLowerCase() : c.toUpperCase());
+const blackFen = `${mirrorParts[0].split('/').reverse().map(flip).join('/')} b kq - 0 12`;
+const blackQuiet = inspectSoundSacrifice(blackFen, 'c5f2')!;
+assert(blackQuiet && blackQuiet.learner === 'b');
+assert.equal(blackQuiet.acceptances[0].san, 'Nxg5');
+assert.equal(blackQuiet.acceptances[0].investmentCp, 320);
+
 function base(c: SacrificeCandidate, score: EngineResult['score'] = cp(20)): EngineResult {
   return { bestMove: c.uci, score, depth: 22, pv: [c.uci] };
 }
@@ -39,6 +68,23 @@ function scripted(c: SacrificeCandidate, config: { best?: EngineResult['score'];
 }
 
 async function run() {
+  for (const accepted of [cp(500), cp(-100)]) {
+    const test = scripted(quiet, { best: cp(500), chosen: cp(500), accepted });
+    const result = await verifySoundSacrifice(quiet, base(quiet, cp(500)), base(quiet, cp(500)), test.engine, { nodes: 600_000 });
+    assert.equal(result.brilliant, accepted.value >= 0, 'Ignoring another attacked piece still needs actual compensation');
+    assert(test.calls.some(call => call.fen === quiet.acceptances[0].fenAfterAcceptance), 'Nxg4 acceptance is evaluated');
+    if (result.brilliant) assert(!result.reason!.startsWith('Жертва слона'), 'Do not call Bf7 a bishop sacrifice when the knight is offered');
+  }
+  const twoBranches = scripted(multiple, { best: cp(0), chosen: cp(0), accepted: cp(0) });
+  const both: EngineLike = { async analyze(fen, options) {
+    const result = await twoBranches.engine.analyze(fen, options);
+    return fen === multiple.acceptances[1].fenAfterAcceptance ? { ...result, score: cp(-100) } : result;
+  } };
+  assert.equal((await verifySoundSacrifice(multiple, base(multiple, cp(0)), base(multiple, cp(0)), both, { nodes: 600_000 })).brilliant, false,
+    'One losing acceptance among two suppresses a quiet other-piece sacrifice');
+  assert(multiple.acceptances.every(a => twoBranches.calls.some(c => c.fen === a.fenAfterAcceptance)));
+  assert.equal((await verifySoundSacrifice(blackQuiet, base(blackQuiet), base(blackQuiet), scripted(blackQuiet).engine, { nodes: 600_000 })).brilliant, true,
+    'Black other-piece acceptance keeps the correct score perspective');
   const near = scripted(pawn, { different: true, best: cp(30), chosen: cp(0), accepted: cp(0) });
   assert.equal((await verifySoundSacrifice(pawn, base(pawn, cp(30)), base(pawn, cp(0)), near.engine, { nodes: 600_000 })).brilliant, true, 'Equality is adequate compensation; the offered move need not rank first');
   assert.equal(near.calls.length, 3);
