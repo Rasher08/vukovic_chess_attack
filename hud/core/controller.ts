@@ -1,7 +1,8 @@
 import type { BrowserChessEngine } from '../../src/lib/browserEngine';
 import { validateTrustedFen } from './position';
 
-export type HudStatus = 'unknown' | 'checking' | 'checked' | 'paused' | 'error';
+export type HudStatus = 'unknown' | 'checking' | 'checked' | 'paused' | 'error' | 'opponent';
+export type AnalysisSide = 'white' | 'black' | 'both';
 export interface HudState { status: HudStatus; idea: boolean; revision: number }
 type Verdict = { brilliant: boolean };
 type Detector = (fen: string, engine: BrowserChessEngine, signal: AbortSignal) => Promise<Verdict>;
@@ -13,6 +14,7 @@ export class HudController {
   private engine: BrowserChessEngine | null = null;
   private abort: AbortController | null = null;
   private paused = false;
+  private side: AnalysisSide = 'both';
   private retry: ReturnType<typeof setTimeout> | null = null;
   private cache = new Map<string, { at: number; verdict: Verdict }>();
   private announced = new Set<string>();
@@ -24,6 +26,14 @@ export class HudController {
     private publish: (state: HudState, notify: boolean) => void,
     private retryDelay = 1500) {}
 
+  resetAnalysis() {
+    this.cache.clear(); this.announced.clear(); this.invalidate();
+  }
+  setSide(side: AnalysisSide) {
+    if (!['white', 'black', 'both'].includes(side)) throw Error('Неизвестная сторона анализа.');
+    if (this.side === side) return;
+    this.side = side; this.resetAnalysis();
+  }
   setPaused(value: boolean) {
     this.paused = value;
     this.invalidate();
@@ -41,6 +51,10 @@ export class HudController {
     if (fen === this.fen) return;
     this.cancel();
     this.fen = fen;
+    const turn = fen.split(' ')[1];
+    if (this.side !== 'both' && turn !== (this.side === 'white' ? 'w' : 'b')) {
+      this.emit('opponent'); return;
+    }
     const cached = this.cache.get(fen);
     if (cached && Date.now() - cached.at < 600_000) { this.finish(fen, cached.verdict); return; }
     this.emit('checking');

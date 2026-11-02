@@ -6,7 +6,10 @@ export class IncompleteAnalysisError extends Error {
   constructor(message = 'Проверка не завершена.', public readonly retryable = true) { super(message); this.name = 'IncompleteAnalysisError'; }
 }
 
+export type AnalysisMode = 'fast' | 'verified';
 export interface DetectionOptions {
+  /** Fast uses the full depth22 root score; verified separately checks replies. */
+  mode?: AnalysisMode;
   /** Per-search budget. Production never lowers nonchalant's 600k-node floor. */
   nodes?: number;
   /** Absolute deadline across all searches; expiration kills the worker. */
@@ -39,11 +42,11 @@ function defenseHolds(chosen: NonNullable<BrowserEngineAnalysis['score']>, defen
 }
 
 /**
- * Finds at most three promising material offers, then verifies compensation.
+ * Checks the full-search best offer first, then ranks unchecked offers in batches.
  * MultiPV is a candidate generator, never evidence sufficient for a notification.
  * Only the boolean leaves this module. Callers must not display internal errors,
- * engine lines, candidates or reasons. A false result means this bounded check
- * found no confirmed candidate, not a mathematical proof that none exists.
+ * engine lines, candidates or reasons. Budgets leave the job incomplete instead
+ * of declaring unchecked candidates negative. Structural coverage is conservative.
  * The caller owns one engine per job and must recreate it after abort/failure.
  */
 export async function detectSacrifice(
@@ -53,6 +56,7 @@ export async function detectSacrifice(
   options: DetectionOptions = {},
 ): Promise<{ brilliant: boolean }> {
   if (signal.aborted) throw abortError();
+  if (options.mode !== undefined && !['fast', 'verified'].includes(options.mode)) throw new IncompleteAnalysisError('Неизвестный режим проверки.', false);
   const nodes = options.nodes ?? 600_000;
   const timeoutMs = options.timeoutMs ?? 90_000;
   const maxSearches = options.maxSearches ?? 36;
@@ -96,32 +100,48 @@ export async function detectSacrifice(
     const candidates = legalMoves(board.fen()).map(move => inspectSoundSacrifice(board.fen(), move)).filter((c): c is SacrificeCandidate => c !== null);
     check();
     if (!candidates.length) return { brilliant: false };
-    const ranked = await analyze(board.fen(), { searchMoves: candidates.map(c => c.uci), multiPv: Math.min(3, candidates.length), nodes: nodes * 2 });
-    const lines = ranked.lines ?? [{ bestMove: ranked.bestMove!, score: ranked.score!, depth: ranked.depth, pv: ranked.pv }];
-    if (lines.length !== Math.min(3, candidates.length) || lines.some(line => line.depth < 12)) throw new IncompleteAnalysisError('Не удалось сравнить кандидатов.', false);
-    for (const line of lines) {
+    const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, 22);
+    const before = await deepAnalyze(board.fen());
+    // Under sound(), no offer can qualify against a root losing-mate score.
+    if (before.score!.kind === 'mate' && before.score!.value < 0) return { brilliant: false };
+    const checked = new Set<string>();
+    const verify = async (candidate: SacrificeCandidate): Promise<boolean> => {
       check();
-      // Ranking only selects work. A MultiPV score at a different search budget
-      // must not veto the Tal profile's independent verification of a candidate.
-      if (line.depth < 12) continue;
-      const candidate = candidates.find(c => c.uci === line.bestMove);
-      if (!candidate) throw new IncompleteAnalysisError('Ответ движка не соответствует кандидатам.');
+      checked.add(candidate.uci);
       // One quality pass: the offer, every acceptance and unrestricted defense
       // must actually reach depth22; the candidate-ranking search is not proof.
-      const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, 22);
-      const before = await deepAnalyze(board.fen());
       const chosen = before.bestMove === candidate.uci ? before : await deepAnalyze(board.fen(), { searchMoves: [candidate.uci] });
-      if (!sound(before.score, chosen.score)) continue;
+      if (!sound(before.score, chosen.score)) return false;
+      // The root search includes every legal opposing reply. Fast mode uses
+      // that single horizon; verified mode also searches each child at depth22.
+      if (options.mode === 'fast') return true;
       const verified = await verifySoundSacrifice(candidate, before, chosen, { analyze: deepAnalyze }, { nodes, signal });
       check();
       // The shared verifier swallows search errors; keep them incomplete.
       if (failure) throw failure;
-      if (!verified.brilliant) continue;
+      if (!verified.brilliant) return false;
       const defense = await deepAnalyze(candidate.fenAfterMove);
-      if (!defenseHolds(chosen.score!, defense.score!)) continue;
-      return { brilliant: true };
+      return defenseHolds(chosen.score!, defense.score!);
+    };
+    const priority = candidates.find(candidate => candidate.uci === before.bestMove);
+    if (priority && await verify(priority)) return { brilliant: true };
+    for (;;) {
+      check();
+      const remaining = candidates.filter(candidate => !checked.has(candidate.uci));
+      if (!remaining.length) return { brilliant: false };
+      const count = Math.min(3, remaining.length);
+      const ranked = await analyze(board.fen(), { searchMoves: remaining.map(c => c.uci), multiPv: count, nodes: nodes * 2 });
+      const lines = ranked.lines ?? [{ bestMove: ranked.bestMove!, score: ranked.score!, depth: ranked.depth, pv: ranked.pv }];
+      if (lines.length !== count || new Set(lines.map(line => line.bestMove)).size !== count ||
+        lines.some(line => line.depth < 12 || !remaining.some(candidate => candidate.uci === line.bestMove))) {
+        throw new IncompleteAnalysisError('Не удалось сравнить кандидатов.', false);
+      }
+      // Ranking orders work; its scores cannot veto independent depth22 checks.
+      for (const line of lines) {
+        const candidate = remaining.find(candidate => candidate.uci === line.bestMove)!;
+        if (await verify(candidate)) return { brilliant: true };
+      }
     }
-    return { brilliant: false };
   } catch (error) {
     check();
     if (error instanceof IncompleteAnalysisError) throw error;

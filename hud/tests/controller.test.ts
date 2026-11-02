@@ -31,6 +31,16 @@ async function main() {
   controller.setPaused(false); controller.accept(a); assert.equal(searches, 3);
   controller.dispose(); jobs[2].resolve({ brilliant: true }); await tick(); assert.equal(announcements, 1);
 
+  let fastMode = true, modeCalls = 0, modeAnnouncements = 0;
+  const modes = new HudController(() => ({ dispose() {} } as BrowserChessEngine), async () => {
+    modeCalls++; return { brilliant: fastMode };
+  }, (_state, notify) => { if (notify) modeAnnouncements++; });
+  modes.accept(a); await tick(); assert(modes.state.idea);
+  fastMode = false; modes.resetAnalysis(); assert.equal(modes.state.status, 'unknown'); assert(!modes.state.idea);
+  modes.accept(a); await tick(); assert.equal(modeCalls, 2); assert(!modes.state.idea, 'A fast cached positive cannot leak into stronger verification');
+  fastMode = true; modes.resetAnalysis(); modes.accept(a); await tick();
+  assert.equal(modeCalls, 3); assert.equal(modeAnnouncements, 2, 'Switching profiles allows a newly verified notification'); modes.dispose();
+
   let attempts = 0;
   const retry = new HudController(() => ({ dispose() {} } as BrowserChessEngine), async () => {
     if (++attempts === 1) throw Error('Engine crashed'); return { brilliant: false };

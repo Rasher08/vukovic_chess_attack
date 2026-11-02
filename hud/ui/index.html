@@ -7,6 +7,13 @@
 <main id="settings">
   <header><div><span class="wordmark">Tal HUD Mentality <b>♞</b> <span id="version" class="version"></span></span><h1>Найти жертву. Рассчитать самому.</h1><p>Корректные жертвы с достаточной компенсацией. Без показа хода.</p></div><span class="local">● Всё на вашем компьютере</span></header>
   <div class="toolbar"><span id="settings-status">Позиция не распознана</span><button id="pause">Пауза</button><button id="collapse">Свернуть HUD</button><button id="move">Переместить HUD</button><label class="sound"><input id="sound" type="checkbox"> Звук</label></div>
+  <div class="analysis-settings">
+    <label for="analysis-mode">Проверка <select id="analysis-mode" aria-describedby="analysis-help" disabled><option value="fast">Быстрая · 22</option><option value="verified">Усиленная · 22</option></select></label>
+    <label for="analysis-side">Играю <select id="analysis-side" aria-describedby="analysis-side-help" disabled><option value="white">За белых</option><option value="black">За чёрных</option><option value="both">За обеих</option></select></label>
+    <p id="analysis-help" class="note">Основная глубина — 22 в обоих режимах. Усиленная отдельно проверяет принятие жертвы и сильнейшую защиту; это дольше.</p>
+    <p id="analysis-side-help" class="note">Выберите свой цвет перед партией. За обеих — для разбора.</p>
+    <p id="analysis-message" class="note" role="status"></p>
+  </div>
   <details id="sound-panel" class="sound-panel">
     <summary>Звук уведомления <span id="sound-name">Стандартный сигнал</span></summary>
     <div class="row"><button id="choose-sound">Добавить свои файлы…</button><button id="preview-sound">Прослушать</button><button id="stop-sound">Стоп</button><button id="reset-sound">Стандартный сигнал</button></div>

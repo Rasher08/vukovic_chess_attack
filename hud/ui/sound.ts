@@ -33,7 +33,7 @@ export function shouldStopSound(previous: PlaybackState | undefined, next: Playb
     // mute or newly unavailable source must still withdraw it immediately.
     return previous.sound && !next.sound || previous.status !== next.status && ['unknown', 'error', 'paused'].includes(next.status);
   }
-  if (!next.sound || !['checking', 'checked'].includes(next.status)) return true;
+  if (!next.sound || !['checking', 'checked', 'opponent'].includes(next.status)) return true;
   return next.soundSettings.stopOnMove && previous.revision !== next.revision;
 }
 

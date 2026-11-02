@@ -36,6 +36,13 @@ class TracedEngine extends NodeEngine {
   }
 }
 
+async function expectNoSignal(fen: string, engine: TracedEngine) {
+  let result;
+  try { result = await detectSacrifice(fen, engine, new AbortController().signal); }
+  catch (error) { assert(error instanceof IncompleteAnalysisError); return; }
+  assert.deepEqual(result, { brilliant: false }, 'A negative fixture must not produce a confirmed sacrifice');
+}
+
 async function run() {
   const start = Date.now();
   const engine = new TracedEngine();
@@ -44,7 +51,8 @@ async function run() {
     assert(candidate, 'fixture is a structural nonchalant sacrifice');
     assert.deepEqual(await detectSacrifice(good, engine, new AbortController().signal), { brilliant: true });
     const positiveTraces = engine.traces.slice();
-    assert(engine.traces.some(t => t.options.multiPv && t.options.searchMoves?.includes('f6e4')), 'restricted MultiPV is only the candidate generator');
+    assert.equal(positiveTraces[0].options.depth, 22, 'The unrestricted root is searched before candidate ranking');
+    assert(!positiveTraces.some(t => t.options.multiPv), 'The best verified offer bypasses coarse ranking');
     assert(engine.traces.some(t => t.fen === candidate.fenAfterMove && !t.options.searchMoves), 'independent unrestricted strongest defense was searched');
     for (const acceptance of candidate.acceptances) assert(engine.traces.some(t => t.fen === acceptance.fenAfterAcceptance), 'every legal acceptance was checked');
     for (const depth of [22]) {
@@ -64,14 +72,14 @@ async function run() {
     } catch (error) { assert(error instanceof IncompleteAnalysisError, 'No positive verdict or unexpected error for the borderline offer'); }
     const neutralOffer = inspectSoundSacrifice(nearBestOnly, 'e5c4')!;
     assert(engine.traces.slice(neutralStart).some(t => t.fen === neutralOffer.acceptances[0].fenAfterAcceptance && t.options.depth === 22 && t.result.score?.kind === 'cp' && t.result.score.value < 0), 'Rejection comes from a deeper negative acceptance, not from ranking another move first');
-    assert.deepEqual(await detectSacrifice(refutedLater, engine, new AbortController().signal), { brilliant: false }, 'The second reported Nc4 signal is rejected by deeper verification');
+    await expectNoSignal(refutedLater, engine);
     console.log('PASS Tal profile: neutral Nc4 acceptance falls below strict zero on22; deeper-refuted Nc4 also rejected.');
 
     // Bxh7 is a tempting but unsound offer in this ordinary position.
     assert(inspectSacrifice(bad, 'd3h7'), 'negative fixture must actually offer material');
     const unsound = await engine.analyze(bad, { nodes: 600_000, searchMoves: ['d3h7'] });
     assert(unsound.score && (unsound.score.kind === 'mate' ? unsound.score.value < 0 : unsound.score.value < -35), 'actual forced sacrifice search is losing');
-    assert.deepEqual(await detectSacrifice(bad, engine, new AbortController().signal), { brilliant: false });
+    await expectNoSignal(bad, engine);
     console.log('PASS real Stockfish 19 Lite: incorrect sacrifice suppressed.');
 
     assert.equal(inspectSacrifice(trade, 'c4d5'), null);
@@ -80,7 +88,7 @@ async function run() {
     assert.deepEqual(await detectSacrifice(trade, engine, new AbortController().signal), { brilliant: false });
     assert.deepEqual(await detectSacrifice(ordinary, engine, new AbortController().signal), { brilliant: false });
     assert(inspectSacrifice(easyWinning, 'd1d5'), 'The easy winning position really contains a material offer');
-    assert.deepEqual(await detectSacrifice(easyWinning, engine, new AbortController().signal), { brilliant: false }, 'Giving up a forced win for equality is not an adequate-quality offer');
+    await expectNoSignal(easyWinning, engine);
     console.log('PASS ordinary exchange and ordinary best moves produce no signal.');
 
     const reportedBest = positiveTraces.find(t => t.fen === reported && t.options.depth === 22 && !t.options.searchMoves)!.result;

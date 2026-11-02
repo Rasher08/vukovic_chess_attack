@@ -50,7 +50,7 @@ async function main() {
   controller.dispose();
 
   const refuted = scripted('refuted');
-  assert.deepEqual(await detectBrilliant(fen, refuted.engine, new AbortController().signal), { brilliant: false }, 'A sacrifice refuted at the required depth never signals');
+  assert.deepEqual(await detectBrilliant(fen, refuted.engine, new AbortController().signal, { maxSearches: 256 }), { brilliant: false }, 'A sacrifice refuted at the required depth never signals');
   const shallow = scripted('shallow');
   await assert.rejects(detectBrilliant(fen, shallow.engine, new AbortController().signal), IncompleteAnalysisError, 'Requested depth alone is insufficient: returned depth must reach 22');
   assert.equal(detectSacrifice, detectBrilliant, 'Legacy transport name aliases the new Tal detector');
@@ -65,12 +65,12 @@ async function main() {
     assert(test.calls.length <= 36, 'Near-best checks stay inside the bounded search count');
   }
   const noncapture = scripted('noncapture-defense');
-  assert.deepEqual(await detectSacrifice(fen, noncapture.engine, new AbortController().signal), { brilliant: false },
+  assert.deepEqual(await detectSacrifice(fen, noncapture.engine, new AbortController().signal, { maxSearches: 256 }), { brilliant: false },
     'A stronger independent defense refutes the offer even when accepting material looked fine');
   assert(noncapture.calls.some(c => c.root === offer.acceptances[0].fenAfterAcceptance));
   assert(noncapture.calls.some(c => c.root === offer.fenAfterMove && !c.options.searchMoves));
   const negative = scripted('negative');
-  assert.deepEqual(await detectSacrifice(fen, negative.engine, new AbortController().signal), { brilliant: false }, 'Even minus one centipawn fails the explicit nonlosing Tal floor');
+  assert.deepEqual(await detectSacrifice(fen, negative.engine, new AbortController().signal, { maxSearches: 256 }), { brilliant: false }, 'Even minus one centipawn fails the explicit nonlosing Tal floor');
   console.log('Depth gate PASS: provisional Tal verdict hidden, same compensated candidate checked once at22 even when another move ranks first, forced searches/defense/acceptances retained, negative floor and refutation rejected, capped shallow search incomplete.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -4,6 +4,8 @@ import { ScreenPositionTracker, validateTrustedFen } from '../core/position';
 import { SCREEN_STATUS, type ScreenIssue } from '../core/screenStatus';
 import { MOVE_STATUS } from '../core/moveHistory';
 import type { AppState } from '../types';
+import type { AnalysisMode } from '../core/detector';
+import type { AnalysisSide } from '../core/controller';
 import { NotificationSoundPlayer, shouldStopSound, validateSound } from './sound';
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -11,8 +13,10 @@ const input = (id: string) => $<HTMLInputElement>(id);
 const overlayMode = new URLSearchParams(location.search).has('overlay');
 const isMac = navigator.platform.toLowerCase().includes('mac');
 const shortcut = (key: string) => isMac ? `⌘⇧${key}` : `Ctrl+Shift+${key}`;
-const labels = { unknown: 'Позиция не распознана', checking: 'Проверяется', checked: 'Проверено', paused: 'Пауза', error: 'Проверка не завершена' };
+const labels = { unknown: 'Позиция не распознана', checking: 'Проверяется', checked: 'Проверено', opponent: 'Ход соперника', paused: 'Пауза', error: 'Проверка не завершена' };
 let state: AppState;
+let pendingAnalysisMode: AnalysisMode | null = null;
+let pendingAnalysisSide: AnalysisSide | null = null;
 const soundPlayer = new NotificationSoundPlayer(() => {
   if (previewingSound) { previewingSound = false; $('sound-message').textContent = 'Прослушивание завершено.'; }
 });
@@ -110,6 +114,13 @@ function saveSoundPlaylist() {
     finally { soundPlaylistPending--; renderSoundSettings(); }
   });
 }
+function renderAnalysisSettings() {
+  const selector = $<HTMLSelectElement>('analysis-mode');
+  selector.value = pendingAnalysisMode ?? state.analysisMode;
+  const side = $<HTMLSelectElement>('analysis-side');
+  side.value = pendingAnalysisSide ?? state.analysisSide;
+  selector.disabled = side.disabled = pendingAnalysisMode !== null || pendingAnalysisSide !== null;
+}
 function renderState(value: AppState) {
   // The initial invoke response can arrive after a newer state broadcast.
   if (state && value.revision < state.revision) return;
@@ -132,6 +143,7 @@ function renderState(value: AppState) {
   $('pause').textContent = state.status === 'paused' ? 'Включить' : 'Пауза';
   $('collapse').textContent = state.collapsed ? 'Развернуть HUD' : 'Свернуть HUD';
   $('move').textContent = state.movable ? 'Закрепить HUD' : 'Переместить HUD';
+  renderAnalysisSettings();
   input('sound').checked = state.sound;
   if (stopAudio) stopSound();
   renderSoundSettings();
@@ -373,6 +385,26 @@ function initializeControls() {
   $('pause').onclick = () => { void window.hud.configure({ paused: state.status !== 'paused' }); };
   $('collapse').onclick = () => { void window.hud.configure({ collapsed: !state.collapsed }); };
   $('move').onclick = () => { void window.hud.configure({ movable: !state.movable }); };
+  $<HTMLSelectElement>('analysis-mode').onchange = async () => {
+    const mode = $<HTMLSelectElement>('analysis-mode').value;
+    if (!state || pendingAnalysisMode || pendingAnalysisSide || mode !== 'fast' && mode !== 'verified') return;
+    pendingAnalysisMode = mode;
+    renderAnalysisSettings();
+    $('analysis-message').textContent = '';
+    try { await window.hud.configure({ analysisMode: mode }); }
+    catch { $('analysis-message').textContent = 'Не удалось сохранить режим проверки. Оставлен предыдущий режим.'; }
+    finally { pendingAnalysisMode = null; renderAnalysisSettings(); }
+  };
+  $<HTMLSelectElement>('analysis-side').onchange = async () => {
+    const side = $<HTMLSelectElement>('analysis-side').value;
+    if (!state || pendingAnalysisMode || pendingAnalysisSide || side !== 'white' && side !== 'black' && side !== 'both') return;
+    pendingAnalysisSide = side;
+    renderAnalysisSettings();
+    $('analysis-message').textContent = '';
+    try { await window.hud.configure({ analysisSide: side }); }
+    catch { $('analysis-message').textContent = 'Не удалось сохранить цвет для проверки. Оставлен предыдущий выбор.'; }
+    finally { pendingAnalysisSide = null; renderAnalysisSettings(); }
+  };
   input('sound').onchange = () => { stopSound(); void window.hud.configure({ sound: input('sound').checked }); };
   input('sound-volume').oninput = () => { $('sound-volume-value').textContent = `${input('sound-volume').value}%`; };
   input('sound-volume').onchange = () => { stopSound(); void window.hud.configure({ volume: Number(input('sound-volume').value) }); };

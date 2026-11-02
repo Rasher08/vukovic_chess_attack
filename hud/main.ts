@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import { Chess } from 'chess.js';
 import { NodeEngine } from './core/nodeEngine';
 import { detectSacrifice } from './core/detector';
+import { AnalysisSettingsStore } from './core/analysisSettings';
 import { HudController } from './core/controller';
 import { BridgeReceiver, localOrigin } from './core/bridgeReceiver';
 import { SCREEN_STATUS, type ScreenIssue } from './core/screenStatus';
@@ -29,6 +30,7 @@ let tray: Tray;
 let mode: SourceMode = smoke ? 'direct' : 'moves';
 let collapsed = false, movable = false, paused = false;
 let soundStore: SoundStore;
+let analysisSettings: AnalysisSettingsStore;
 let captureSource = '', screenSeen = 0;
 let screenIssue: ScreenIssue | null = 'no-capture';
 let bridgeStatus: AppState['bridge'] = 'waiting';
@@ -41,13 +43,13 @@ const engineScript = app.isPackaged
       : path.resolve(__dirname, '../../node_modules/stockfish/bin/stockfish-19-lite-single.js'));
 const controller = new HudController(
   () => new NodeEngine({ enginePath: engineScript }),
-  detectSacrifice,
+  (fen, engine, signal) => detectSacrifice(fen, engine, signal, { mode: analysisSettings?.mode ?? 'fast' }),
   (_, notify) => { broadcast(); if (notify && soundStore?.settings.enabled && controls && !controls.isDestroyed()) controls.webContents.send('hud:sound'); },
 );
 const bridge = new BridgeReceiver(token, fen => { if (mode === 'direct') controller.accept(fen); });
 const moveReceiver = new MoveReceiver(token, fen => { if (mode === 'moves') controller.accept(fen); });
 function state(): AppState {
-  return { ...controller.state, mode, sound: soundStore?.settings.enabled ?? false, soundSettings: soundStore?.settings ?? { enabled: false, volume: 35, duration: 5, stopOnMove: true, selection: 'selected', selectedId: null, tracks: [], activeIds: [], includeTone: true, name: null, revision: '' }, collapsed, movable, bridge: bridgeStatus,
+  return { ...controller.state, mode, analysisMode: analysisSettings?.mode ?? 'fast', analysisSide: analysisSettings?.side ?? 'white', sound: soundStore?.settings.enabled ?? false, soundSettings: soundStore?.settings ?? { enabled: false, volume: 35, duration: 5, stopOnMove: true, selection: 'selected', selectedId: null, tracks: [], activeIds: [], includeTone: true, name: null, revision: '' }, collapsed, movable, bridge: bridgeStatus,
     version: app.getVersion(), screenIssue, moveIssue: moveReceiver.issue, movesCount: moveReceiver.count, capturePermission: process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'not-required' };
 }
 function broadcast() {
@@ -105,6 +107,8 @@ server.on('error', () => { serverFailed = true; bridgeStatus = 'conflict'; contr
 
 void app.whenReady().then(async () => {
   soundStore = new SoundStore(app.getPath('userData'));
+  analysisSettings = new AnalysisSettingsStore(app.getPath('userData'));
+  controller.setSide(analysisSettings.side);
   const webPreferences: Electron.WebPreferences = { preload: path.join(__dirname, 'preload.cjs'), nodeIntegration: false, contextIsolation: true, sandbox: true, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required' };
   controls = new BrowserWindow({ width: 960, height: 880, minWidth: 780, minHeight: 660, title: 'Tal HUD Mentality', backgroundColor: '#17181b', webPreferences, show: false });
   const area = screen.getPrimaryDisplay().workArea;
@@ -166,7 +170,7 @@ void app.whenReady().then(async () => {
   ipcMain.handle('hud:copy-diagnostics', event => {
     if (!isControls(event)) throw Error('Unauthorized');
     clipboard.writeText(JSON.stringify({ version: app.getVersion(), source: mode, status: controller.state.status,
-      recordedPlies: moveReceiver.count, notices: controller.notificationHistory }, null, 2));
+      analysisMode: analysisSettings.mode, analysisSide: analysisSettings.side, recordedPlies: moveReceiver.count, notices: controller.notificationHistory }, null, 2));
   });
   ipcMain.handle('hud:open-extension', async event => {
     if (!isControls(event)) throw Error('Unauthorized');
@@ -182,6 +186,15 @@ void app.whenReady().then(async () => {
   ipcMain.handle('hud:configure', (event, value) => {
     if (!isControls(event) || !value || typeof value !== 'object') throw Error('Unauthorized');
     if (['screen', 'direct', 'moves'].includes(value.mode) && value.mode !== mode) { mode = value.mode; bridge.reset(); screenSeen = 0; controller.invalidate(); }
+    if (value.analysisMode !== undefined) {
+      const changed = analysisSettings.mode !== value.analysisMode;
+      analysisSettings.setMode(value.analysisMode);
+      if (changed) controller.resetAnalysis();
+    }
+    if (value.analysisSide !== undefined) {
+      analysisSettings.setSide(value.analysisSide);
+      controller.setSide(analysisSettings.side);
+    }
     if (typeof value.paused === 'boolean') setPause(value.paused);
     if (typeof value.sound === 'boolean' || typeof value.volume === 'number' || typeof value.duration === 'number' ||
       typeof value.stopOnMove === 'boolean' || value.selection !== undefined || value.selectedId !== undefined || value.activeIds !== undefined || value.includeTone !== undefined) {
@@ -385,8 +398,10 @@ async function runSmoke() {
   const out = path.resolve(__dirname, '../test-results'); fs.mkdirSync(out, { recursive: true });
   const text = await controls.webContents.executeJavaScript('document.body.innerText');
   if (!text.includes('Доска на экране') || !text.includes('Tal HUD Mentality') || app.getName() !== 'Tal HUD Mentality') throw Error('Settings did not render with the new app name');
+  if (state().analysisMode !== 'fast' || await controls.webContents.executeJavaScript(`document.getElementById('analysis-mode').value`) !== 'fast') throw Error('Fresh profile did not use fast analysis');
+  if (state().analysisSide !== 'white' || await controls.webContents.executeJavaScript(`document.getElementById('analysis-side').value`) !== 'white') throw Error('Fresh profile did not select white');
   fs.writeFileSync(path.join(out, 'settings.png'), (await controls.webContents.capturePage()).toPNG());
-  for (const status of ['unknown', 'checking', 'checked', 'paused', 'error'] as const) {
+  for (const status of ['unknown', 'checking', 'checked', 'paused', 'error', 'opponent'] as const) {
     overlay.webContents.send('hud:state', { ...state(), status, idea: false });
     await overlay.webContents.executeJavaScript('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))');
     const rendered = await overlay.webContents.executeJavaScript('document.body.innerText');
@@ -410,6 +425,16 @@ async function runSmoke() {
     const deadline = Date.now() + 95_000;
     while (!controller.state.idea && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 100));
     if (!controller.state.idea) throw Error('Real Stockfish did not reach positive HUD verdict');
+    await controls.webContents.executeJavaScript(`
+      const choice = document.getElementById('analysis-mode'); choice.value = 'verified'; choice.dispatchEvent(new Event('change', {bubbles:true}));
+    `);
+    const modeDeadline = Date.now() + 3000;
+    while (state().analysisMode !== 'verified' && Date.now() < modeDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+    if (state().analysisMode !== 'verified' || controller.state.idea) throw Error('Mode switch did not invalidate the fast verdict');
+    const verifiedDeadline = Date.now() + 95000;
+    while (!controller.state.idea && Date.now() < verifiedDeadline) await new Promise(resolve => setTimeout(resolve, 100));
+    if (!controller.state.idea) throw Error('Verified mode did not complete independent replies on the same position');
+
   } finally { clearInterval(pulse); }
   const waitForSignal = async () => {
     const deadline = Date.now() + 4000;
@@ -424,6 +449,17 @@ async function runSmoke() {
   fs.writeFileSync(path.join(out, 'overlay.png'), (await overlay.webContents.capturePage()).toPNG());
   await post(null);
   if (controller.state.idea || controller.state.status !== 'unknown') throw Error('Changed source did not immediately clear signal');
+  await controls.webContents.executeJavaScript(`window.hud.configure({analysisMode:'fast'})`);
+  const opponent = new Chess(fixture); opponent.move('Nxh6');
+  await post(opponent.fen());
+  const opponentPulse = setInterval(() => { void post(opponent.fen()).catch(() => {}); }, 450);
+  try {
+    const deadline = Date.now() + 5000;
+    while (state().status !== 'opponent' && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50));
+    if (state().status !== 'opponent' || state().idea) throw Error('Opponent turn was analysed instead of waiting');
+  } finally { clearInterval(opponentPulse); }
+  await post(null);
+
   // A real move-list HTTP request is replayed locally before reaching Stockfish.
   await controls.webContents.executeJavaScript("document.getElementById('moves-tab').click()");
   const modeDeadline = Date.now() + 3000;
@@ -459,6 +495,13 @@ async function runSmoke() {
   await controls.webContents.executeJavaScript("document.getElementById('screen-tab').click()");
   await controls.webContents.executeJavaScript('new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))');
   fs.writeFileSync(path.join(out, 'screen-settings.png'), (await controls.webContents.capturePage()).toPNG());
+  await controls.webContents.executeJavaScript(`window.hud.configure({analysisMode:'verified'})`);
+  await controls.webContents.executeJavaScript(`
+    const side = document.getElementById('analysis-side'); side.value = 'black'; side.dispatchEvent(new Event('change', {bubbles:true}));
+  `);
+  const sideDeadline = Date.now() + 3000;
+  while (state().analysisSide !== 'black' && Date.now() < sideDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+  if (state().analysisSide !== 'black') throw Error('Side selector did not save');
   // Regression: persisted settings must survive a real renderer reload. Old
   // initialization invoked the loader before its let bindings existed.
   await controls.webContents.executeJavaScript(`
@@ -466,7 +509,7 @@ async function runSmoke() {
     localStorage.setItem('nonchalant:hud:orientation','black');
   `);
   await new Promise<void>(resolve => { controls.webContents.once('did-finish-load', () => resolve()); controls.webContents.reload(); });
-  const restored = await controls.webContents.executeJavaScript(`({orientation:document.getElementById('orientation').value, ready:!document.getElementById('region').disabled, known:document.getElementById('confirmed').checked})`);
-  if (restored.orientation !== 'black' || !restored.ready || restored.known) throw Error('Persisted screen setup lost or unconfirmed FEN trusted');
-  console.log('HUD smoke PASS: native windows, all statuses, reported Nxh6 via authenticated HTTP/FEN and Bf7 via22-ply text replay, real Stockfish, boolean-only HUD, immediate withdrawal. Screen permission: ' + state().capturePermission);
+  const restored = await controls.webContents.executeJavaScript(`({orientation:document.getElementById('orientation').value, ready:!document.getElementById('region').disabled, known:document.getElementById('confirmed').checked, analysis:document.getElementById('analysis-mode').value,side:document.getElementById('analysis-side').value})`);
+  if (restored.orientation !== 'black' || !restored.ready || restored.known || restored.analysis !== 'verified' || restored.side !== 'black') throw Error('Persisted screen setup lost or unconfirmed FEN trusted');
+  console.log('HUD smoke PASS: native windows, all statuses, reported Nxh6 via authenticated HTTP/FEN and Bf7 via22-ply text replay, real Stockfish, fast/verified switch with cache invalidation, own-side filter and saved side/mode, boolean-only HUD, immediate withdrawal. Screen permission: ' + state().capturePermission);
 }

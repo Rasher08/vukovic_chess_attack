@@ -14,12 +14,19 @@ assert.equal(shouldStopSound(position, { ...position, status: 'checking', revisi
   'Allow a track to finish across the next valid position when stop on move is off');
 assert.equal(shouldStopSound(position, { ...position, revision: 9 }), false,
   'Finishing another position check must not cut off that track');
+const opponent = { ...position, status: 'opponent' as const, revision: 9 };
+assert.equal(shouldStopSound(position, opponent), false, 'The opponent turn remains a valid connected position when music may continue across moves');
+assert.equal(shouldStopSound(opponent, { ...position, status: 'checking', revision: 10 }), false,
+  'Returning to our turn also preserves music when stop on move is disabled');
 const stopOnMove = { ...position, soundSettings: { ...settings, stopOnMove: true } };
 assert.equal(shouldStopSound(stopOnMove, { ...stopOnMove, revision: 9, status: 'checking' }), true);
+assert.equal(shouldStopSound(stopOnMove, { ...stopOnMove, revision: 9, status: 'opponent' }), true,
+  'An opponent turn is still a move when stop on move is enabled');
 assert.equal(shouldStopSound(stopOnMove, { ...stopOnMove }), false,
   'A layout or other unchanged-state broadcast is not a move');
 for (const status of ['unknown', 'error', 'paused'] as const) {
   assert.equal(shouldStopSound(position, { ...position, status }), true, `Stop for unavailable source / ${status}`);
+  assert.equal(shouldStopSound(opponent, { ...opponent, status }), true, `An opponent turn cannot keep music alive after source loss / ${status}`);
 }
 assert.equal(shouldStopSound(position, { ...position, sound: false }), true);
 assert.equal(shouldStopSound(position, { ...position, mode: 'moves' }), true);
@@ -32,6 +39,8 @@ assert.equal(shouldStopSound(disconnected, { ...disconnected }, true), false,
   'Manual preview works before connecting a board or enabling notifications');
 assert.equal(shouldStopSound(position, { ...position, status: 'paused' }, true), true);
 assert.equal(shouldStopSound(position, { ...position, sound: false }, true), true);
+assert.equal(shouldStopSound(position, opponent, true), false, 'Manual preview continues through a valid opponent turn');
+assert.equal(shouldStopSound(opponent, { ...position, status: 'checking', revision: 10 }, true), false);
 
 // Exercise actual audio lifecycle with a deterministic media device and clock.
 // No sound files are installed in the app or read by these tests.

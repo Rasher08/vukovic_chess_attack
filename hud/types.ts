@@ -1,10 +1,13 @@
-import type { HudState } from './core/controller';
+import type { HudState, AnalysisSide } from './core/controller';
+import type { AnalysisMode } from './core/detector';
 import type { ScreenIssue } from './core/screenStatus';
 import type { MoveIssue } from './core/moveHistory';
 import type { SoundSettings, SoundAsset, SoundChoice } from './core/soundStore';
 export type SourceMode = 'direct' | 'screen' | 'moves';
 export interface AppState extends HudState {
   version: string;
+  analysisMode: AnalysisMode;
+  analysisSide: AnalysisSide;
   mode: SourceMode; sound: boolean; collapsed: boolean; movable: boolean;
   soundSettings: SoundSettings;
   bridge: 'waiting' | 'connected' | 'conflict'; capturePermission: string;
@@ -17,7 +20,7 @@ export interface HudAPI {
   sources(): Promise<{ id: string; name: string; thumbnail: string }[]>;
   selectSource(id: string): Promise<void>;
   screenPosition(fen: string | null, issue?: ScreenIssue): void;
-  configure(settings: { mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; stopOnMove?: boolean; selection?: 'selected' | 'random'; selectedId?: string | null; activeIds?: string[]; includeTone?: boolean; collapsed?: boolean; movable?: boolean }): Promise<void>;
+  configure(settings: { analysisMode?: AnalysisMode; analysisSide?: AnalysisSide; mode?: SourceMode; paused?: boolean; sound?: boolean; volume?: number; duration?: number; stopOnMove?: boolean; selection?: 'selected' | 'random'; selectedId?: string | null; activeIds?: string[]; includeTone?: boolean; collapsed?: boolean; movable?: boolean }): Promise<void>;
   chooseSound(): Promise<SoundChoice | null>;
   chooseSounds(): Promise<SoundChoice[]>;
   confirmSound(id: string): Promise<void>;
