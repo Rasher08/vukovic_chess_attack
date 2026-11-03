@@ -1,0 +1,6 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": { "incremental": false, "target": "ES2022", "module": "esnext", "types": ["node"] },
+  "include": ["main.ts", "preload.ts", "types.ts", "core/**/*.ts", "ui/**/*.ts", "extension/**/*.ts", "tests/**/*.ts"],
+  "exclude": ["node_modules", "dist", "release", "test-results"]
+}

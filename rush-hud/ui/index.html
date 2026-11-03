@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Nonchalant Rush HUD</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+  <header><div class="brand"><span class="logo">♞</span><div><strong>nonchalant<span class="muted"> / rush</span></strong><p>ТАКТИКА В ОДНО КАСАНИЕ</p></div></div><span id="version" class="version"></span></header>
+  <section class="toolbar"><div><span class="dot" id="dot"></span><strong id="status">Запускаю движок…</strong><p id="connection">Подключите расширение на странице задач</p></div><button id="pause" class="quiet">Пауза</button></section>
+  <div class="layout"><section>
+    <div class="board-heading"><span id="turn">Тестовая доска</span><span id="metrics">—</span></div>
+    <div id="board" aria-label="Предпросмотр позиции"><div id="squares"></div><svg id="board-arrow" viewBox="0 0 800 800" aria-hidden="true"><defs><marker id="arrowhead" markerWidth="3" markerHeight="3" refX="1.9" refY="1.5" orient="auto"><path d="M0,0 L3,1.5 L0,3 Z" fill="currentColor"/></marker></defs><line id="arrow-line" marker-end="url(#arrowhead)"/></svg></div>
+    <p class="caption" id="result">На странице задач стрелка появится прямо поверх доски.</p>
+  </section><aside>
+    <section class="card"><h2>Скорость подсказки</h2><select id="budget" aria-label="Время поиска"><option value="100">100 мс · быстро</option><option value="250" selected>250 мс · баланс</option><option value="600">600 мс · тщательнее</option></select><p>Это время расчёта. Отрисовка доски и передача позиции добавляют задержку. Короткий поиск чаще ошибается на сложной тактике.</p></section>
+    <section class="card"><h2>Подключение</h2><ol><li>Открой папку расширения и добавь её через «Загрузить распакованное» в Chrome / Edge.</li><li>Открой Chess.com → Задачи → Штурм.</li><li>Скопируй ключ и нажми «Подключить» в расширении.</li></ol><div class="actions"><button id="extension">Папка расширения</button><button id="copy" class="quiet">Копировать ключ</button></div><p>Это отдельное расширение Rush HUD. Оно читает фигуры с доски; захват экрана не требуется.</p></section>
+    <details class="card"><summary>Проверить свою позицию</summary><label for="fen">Полный FEN</label><textarea id="fen" spellcheck="false">rnb1k1nr/pppp1ppq/4p3/b3N1pQ/4P2P/2PP4/PP3PP1/RN2KB1R w - - 0 1</textarea><button id="analyze">Показать ход</button><p>Для ручной проверки отключи расширение. FEN позволяет точно задать рокировки и взятие на проходе.</p></details>
+  </aside></div><p id="notice" role="status"></p>
+  <footer>Стрелка подсказывает ход. Фигуры двигаешь ты. <span id="engine">Stockfish 19 · локально</span></footer>
+</main><script src="renderer.js"></script></body></html>

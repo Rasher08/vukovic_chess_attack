@@ -25,7 +25,10 @@
     "test:review": "tsx tests/game_review_test.ts && tsx tests/review_highlights_test.ts && tsx tests/brilliant_move_test.ts && tsx tests/sound_sacrifice_test.ts && tsx tests/game_review_storage_test.ts && tsx tests/review_board_test.ts && tsx tests/review_presentation_test.ts && tsx tests/opening_theory_test.ts && tsx tests/engine_line_test.ts && tsx tests/review_recovery_test.ts && tsx tests/game_quality_rating_test.ts",
     "build:rating-model": "python3 scripts/calibration/fit_model.py content/rating-calibration/maia-game-quality-sample.json",
     "test:endgames": "tsx tests/endgame_content_test.ts && tsx tests/endgame_training_test.ts && tsx tests/endgame_progress_test.ts",
-    "audit:endgames": "tsx scripts/audit_endgames.ts"
+    "audit:endgames": "tsx scripts/audit_endgames.ts",
+    "rush:setup": "npm --prefix rush-hud run setup",
+    "rush": "npm --prefix rush-hud start",
+    "test:rush": "npm --prefix rush-hud run typecheck && npm --prefix rush-hud test && npm --prefix rush-hud run test:extension && npm --prefix rush-hud run smoke"
   },
   "dependencies": {
     "canvas-confetti": "^1.9.3",

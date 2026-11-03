@@ -1,0 +1,7 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><title>Nonchalant Rush HUD</title><link rel="stylesheet" href="popup.css"></head><body>
+<header>nonchalant <b>rush</b></header><p>Стрелки в задачах Chess.com от локального Stockfish.</p>
+<label>Ключ из приложения<input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Вставьте ключ Rush HUD"></label>
+<label>Сторона решения<select id="side"><option value="auto">Авто · по стороне доски</option><option value="white">Белые</option><option value="black">Чёрные</option></select></label>
+<button id="connect">Подключить эту вкладку</button><button id="disconnect" class="secondary">Отключить</button><p id="status" role="status"></p>
+<small>Работает только на /puzzles. Первая позиция считается ходом выбранной стороны. Рокировка в начальном снимке не предполагается. Ходы выполняете вы.</small>
+<script src="popup.js"></script></body></html>

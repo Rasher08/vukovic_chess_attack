@@ -1,0 +1,21 @@
+Windows default: unmodified official Stockfish 19 universal x86-64 executable.
+Official release archive and SHA256:
+https://github.com/official-stockfish/Stockfish/releases/download/sf_19/stockfish-windows-x86-64-universal.zip
+3c8bf1f9ea66a09350a40df4f632288285ac206d99f33ab5842c408fc30b48a7
+Corresponding GPL3 source, AUTHORS, Copying.txt and build documentation are
+included under resources/stockfish-native alongside the original executable.
+https://github.com/official-stockfish/Stockfish/tree/sf_19
+
+Non-Windows development fallback: Stockfish.js 19.0.1 — stockfish-19-lite-single (unmodified JS + WASM).
+Copyright the Stockfish contributors and Stockfish.js contributors.
+License: GNU General Public License version 3; included as Copying.txt.
+Exact npm binary distribution:
+https://registry.npmjs.org/stockfish/-/stockfish-19.0.1.tgz
+Corresponding Stockfish.js source and build instructions:
+https://github.com/nmrugg/stockfish.js/tree/v19.0.1
+https://github.com/nmrugg/stockfish.js/archive/0d5dd7944f88c817c07a26bc4fb1905d5f9c46d6.tar.gz
+https://github.com/nmrugg/stockfish.js
+Engine runs in a separate local process. No modified engine is distributed.
+
+Electron, electron-builder, esbuild, chess.js and their dependencies retain
+their respective licenses in their source distributions.

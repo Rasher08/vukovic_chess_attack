@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Nonchalant Rush HUD",
+  "version": "0.1.0",
+  "description": "Локальная стрелка Stockfish поверх видимой доски в задачах Chess.com.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["http://127.0.0.1/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_popup": "popup.html", "default_title": "Nonchalant Rush HUD" },
+  "content_scripts": [{ "matches": ["https://www.chess.com/puzzles*", "https://chess.com/puzzles*"], "js": ["content.js"], "run_at": "document_idle" }],
+  "content_security_policy": { "extension_pages": "script-src 'self'; object-src 'none'; connect-src http://127.0.0.1:18329" }
+}

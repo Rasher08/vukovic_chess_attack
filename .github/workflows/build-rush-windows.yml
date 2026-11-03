@@ -1,0 +1,51 @@
+name: Build Rush HUD for Windows
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['rush-v*']
+    paths:
+      - 'rush-hud/**'
+      - 'hud/core/position.ts'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/build-rush-windows.yml'
+  pull_request:
+    paths: ['rush-hud/**', '.github/workflows/build-rush-windows.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rush-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            rush-hud/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Install Rush HUD dependencies
+        working-directory: rush-hud
+        run: npm run setup
+      - name: Check Rush HUD
+        working-directory: rush-hud
+        run: |
+          npm run typecheck
+          npm test
+          npm run test:extension
+          npm run smoke
+      - name: Package Windows setup and portable
+        working-directory: rush-hud
+        run: npm run dist:win
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonchalant-rush-hud-windows
+          path: rush-hud/release/*.exe
+          if-no-files-found: error
