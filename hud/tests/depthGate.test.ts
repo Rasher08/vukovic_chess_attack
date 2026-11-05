@@ -18,13 +18,13 @@ function scripted(mode: 'hold' | 'refuted' | 'shallow' | 'near-best' | 'best-cha
     async analyze(root: string, options: BrowserEngineSearchOptions = {}) {
       calls.push({ root, options });
       const depth = options.depth ?? 16;
-      if (depth === 22 && root === offer.fenAfterMove) { reached(); if (mode === 'hold') await gate; }
+      if (depth === 15 && root === offer.fenAfterMove) { reached(); if (mode === 'hold') await gate; }
       let allowed = options.searchMoves || moves(root);
       if (root === fen && allowed.includes(offer.uci)) allowed = [offer.uci, ...allowed.filter(m => m !== offer.uci)];
-      if (root === fen && !options.searchMoves && (mode === 'near-best' || mode === 'negative' || mode === 'best-changed' && depth === 22)) allowed = ['g1h1', ...allowed.filter(m => m !== 'g1h1')];
+      if (root === fen && !options.searchMoves && (mode === 'near-best' || mode === 'negative' || mode === 'best-changed' && depth === 15)) allowed = ['g1h1', ...allowed.filter(m => m !== 'g1h1')];
       const score = { kind: 'cp' as const, value: mode === 'noncapture-defense' && new Chess(root).turn() !== 'w' ? 500 : mode === 'negative' && root === fen && options.searchMoves?.length === 1 ? -1 : root === fen && !allowed.includes(offer.uci) ? 0
-        : mode === 'refuted' && depth === 22 && root !== fen ? -500 : 0 };
-      const actualDepth = mode === 'shallow' && depth === 22 ? 21 : depth;
+        : mode === 'refuted' && depth === 15 && root !== fen ? -500 : 0 };
+      const actualDepth = mode === 'shallow' && depth === 15 ? 14 : depth;
       const lines = allowed.slice(0, options.multiPv ?? 1).map(bestMove => ({ bestMove, score, depth: actualDepth, pv: [bestMove] }));
       return { ...lines[0], lines: options.multiPv ? lines : undefined };
     },
@@ -36,7 +36,7 @@ async function main() {
   const controller = new HudController(() => held.engine, detectBrilliant, (_state, notify) => { if (notify) notifications++; });
   controller.accept(fen);
   await held.finalDefense;
-  assert(held.calls.some(c => c.root === offer.acceptances[0].fenAfterAcceptance && c.options.depth === 22), 'Acceptance was checked before the final unrestricted defense');
+  assert(held.calls.some(c => c.root === offer.acceptances[0].fenAfterAcceptance && c.options.depth === 15), 'Acceptance was checked before the final unrestricted defense');
   assert(!held.calls.some(c => c.options.depth === 20), 'The old depth20 pass must not run');
   assert.equal(controller.state.status, 'checking');
   assert.equal(controller.state.idea, false, 'A provisional positive must never appear in HUD');
@@ -45,23 +45,26 @@ async function main() {
   const deadline = Date.now() + 1000;
   while (controller.state.status === 'checking' && Date.now() < deadline) await new Promise(r => setTimeout(r, 0));
   assert.equal(controller.state.status, 'checked'); assert(controller.state.idea); assert.equal(notifications, 1);
-  for (const acceptance of offer.acceptances) assert(held.calls.some(c => c.root === acceptance.fenAfterAcceptance && c.options.depth === 22), 'Every acceptance was verified at the required depth');
-  assert(held.calls.some(c => c.root === offer.fenAfterMove && c.options.depth === 22));
+  for (const acceptance of offer.acceptances) assert(held.calls.some(c => c.root === acceptance.fenAfterAcceptance && c.options.depth === 15), 'Every acceptance was verified at the required depth');
+  assert(held.calls.some(c => c.root === offer.fenAfterMove && c.options.depth === 15));
   controller.dispose();
 
   const refuted = scripted('refuted');
   assert.deepEqual(await detectBrilliant(fen, refuted.engine, new AbortController().signal, { maxSearches: 256 }), { brilliant: false }, 'A sacrifice refuted at the required depth never signals');
   const shallow = scripted('shallow');
-  await assert.rejects(detectBrilliant(fen, shallow.engine, new AbortController().signal), IncompleteAnalysisError, 'Requested depth alone is insufficient: returned depth must reach 22');
+  await assert.rejects(detectBrilliant(fen, shallow.engine, new AbortController().signal), IncompleteAnalysisError, 'Requested depth alone is insufficient: returned depth must reach 15');
+  assert.equal(shallow.calls[0].options.depth, 15, 'Depth15 must be requested from the engine, not only used as a result threshold');
+  await assert.rejects(detectSacrifice(fen, scripted('shallow').engine, new AbortController().signal, { mode: 'fast' }), IncompleteAnalysisError,
+    'Fast mode also rejects a capped depth14 result');
   assert.equal(detectSacrifice, detectBrilliant, 'Legacy transport name aliases the new Tal detector');
   for (const mode of ['near-best', 'best-changed'] as const) {
     const test = scripted(mode);
     assert.deepEqual(await detectSacrifice(fen, test.engine, new AbortController().signal), { brilliant: true }, 'A compensated offer remains valid when another move ranks first');
-    for (const depth of [22]) {
-      assert(test.calls.some(c => c.root === offer.acceptances[0].fenAfterAcceptance && c.options.depth === depth), 'The same material offer is accepted and checked at depth22');
-      assert(test.calls.some(c => c.root === offer.fenAfterMove && c.options.depth === depth), 'Independent unrestricted defense is still checked at depth22');
+    for (const depth of [15]) {
+      assert(test.calls.some(c => c.root === offer.acceptances[0].fenAfterAcceptance && c.options.depth === depth), 'The same material offer is accepted and checked at depth15');
+      assert(test.calls.some(c => c.root === offer.fenAfterMove && c.options.depth === depth), 'Independent unrestricted defense is still checked at depth15');
     }
-    assert(test.calls.some(c => c.root === fen && c.options.depth === 22 && c.options.searchMoves?.length === 1 && c.options.searchMoves[0] === offer.uci), 'The selected offer, rather than a changed best move, gets a forced search');
+    assert(test.calls.some(c => c.root === fen && c.options.depth === 15 && c.options.searchMoves?.length === 1 && c.options.searchMoves[0] === offer.uci), 'The selected offer, rather than a changed best move, gets a forced search');
     assert(test.calls.length <= 36, 'Near-best checks stay inside the bounded search count');
   }
   const noncapture = scripted('noncapture-defense');
@@ -71,6 +74,6 @@ async function main() {
   assert(noncapture.calls.some(c => c.root === offer.fenAfterMove && !c.options.searchMoves));
   const negative = scripted('negative');
   assert.deepEqual(await detectSacrifice(fen, negative.engine, new AbortController().signal, { maxSearches: 256 }), { brilliant: false }, 'Even minus one centipawn fails the explicit nonlosing Tal floor');
-  console.log('Depth gate PASS: provisional Tal verdict hidden, same compensated candidate checked once at22 even when another move ranks first, forced searches/defense/acceptances retained, negative floor and refutation rejected, capped shallow search incomplete.');
+  console.log('Depth gate PASS: provisional Tal verdict hidden, same compensated candidate checked once at15 even when another move ranks first, forced searches/defense/acceptances retained, negative floor and refutation rejected, capped shallow search incomplete.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -8,10 +8,15 @@ import { NodeEngine } from '../hud/core/nodeEngine';
 const cp = (value: number) => ({ kind: 'cp' as const, value });
 const legal = (fen: string) => new Chess(fen).moves({ verbose: true }).map(m => m.from + m.to + (m.promotion || ''));
 const qgBoard = new Chess(); qgBoard.move('d4'); qgBoard.move('d5');
-const pawn = inspectSoundSacrifice(qgBoard.fen(), 'c2c4')!;
-assert(pawn && pawn.piece === 'p');
-assert.equal(pawn.acceptances[0].san, 'dxc4');
-assert.equal(pawn.acceptances[0].investmentCp, 100);
+assert.equal(inspectSoundSacrifice(qgBoard.fen(), 'c2c4'), null, 'Pawn gambits are outside Tal’s piece-sacrifice scope');
+assert.equal(inspectSoundSacrifice('4k3/8/8/3p4/2P5/8/8/R3K3 w - - 0 1', 'a1a2'), null,
+  'A rook move leaving a pawn en prise must not turn into a piece sacrifice');
+assert.equal(inspectSoundSacrifice('4k3/8/8/8/3p4/8/4P3/R3K3 w - - 0 1', 'e2e4'), null,
+  'An en passant pawn offer must not trigger Tal either');
+const pawnMoveOffer = inspectSoundSacrifice('4k3/8/8/8/1b6/2N5/7P/R3K3 w - - 0 1', 'h2h3')!;
+assert(pawnMoveOffer && pawnMoveOffer.piece === 'p', 'A pawn move may still offer a real knight');
+assert.equal(pawnMoveOffer.acceptances[0].san, 'Bxc3+');
+assert.equal(pawnMoveOffer.acceptances[0].investmentCp, 320);
 assert.equal(inspectSacrifice(qgBoard.fen(), 'c2c4'), null, 'Website brilliant material scope stays unchanged');
 const exchangeFen = '6bk/5QR1/6K1/8/8/8/8/8 w - - 0 1';
 const exchange = inspectSoundSacrifice(exchangeFen, 'g7h7')!;
@@ -68,6 +73,13 @@ function scripted(c: SacrificeCandidate, config: { best?: EngineResult['score'];
 }
 
 async function run() {
+  const forgedPawn = {
+    fenBefore: qgBoard.fen(), fenAfterMove: '', uci: 'c2c4', san: 'c4', piece: 'p', learner: 'w', acceptances: [],
+  } satisfies SacrificeCandidate;
+  const blockedPawn = scripted(forgedPawn);
+  assert.deepEqual(await verifySoundSacrifice(forgedPawn, base(forgedPawn), base(forgedPawn), blockedPawn.engine, { nodes: 600_000 }), { brilliant: false },
+    'The verifier rechecks material scope instead of trusting a stale or forged pawn candidate');
+  assert.equal(blockedPawn.calls.length, 0);
   for (const accepted of [cp(500), cp(-100)]) {
     const test = scripted(quiet, { best: cp(500), chosen: cp(500), accepted });
     const result = await verifySoundSacrifice(quiet, base(quiet, cp(500)), base(quiet, cp(500)), test.engine, { nodes: 600_000 });
@@ -85,18 +97,18 @@ async function run() {
   assert(multiple.acceptances.every(a => twoBranches.calls.some(c => c.fen === a.fenAfterAcceptance)));
   assert.equal((await verifySoundSacrifice(blackQuiet, base(blackQuiet), base(blackQuiet), scripted(blackQuiet).engine, { nodes: 600_000 })).brilliant, true,
     'Black other-piece acceptance keeps the correct score perspective');
-  const near = scripted(pawn, { different: true, best: cp(30), chosen: cp(0), accepted: cp(0) });
-  assert.equal((await verifySoundSacrifice(pawn, base(pawn, cp(30)), base(pawn, cp(0)), near.engine, { nodes: 600_000 })).brilliant, true, 'Equality is adequate compensation; the offered move need not rank first');
+  const near = scripted(quiet, { different: true, best: cp(30), chosen: cp(0), accepted: cp(0) });
+  assert.equal((await verifySoundSacrifice(quiet, base(quiet, cp(30)), base(quiet, cp(0)), near.engine, { nodes: 600_000 })).brilliant, true, 'Equality is adequate compensation; the offered move need not rank first');
   assert.equal(near.calls.length, 3);
-  assert.deepEqual(near.calls[1].searchMoves, [pawn.uci]);
+  assert.deepEqual(near.calls[1].searchMoves, [quiet.uci]);
   assert(near.calls.every(c => !c.searchMoves || c.searchMoves.length === 1), 'Tal does not compare unrelated winning alternatives');
   for (const config of [
     { different: true, best: cp(10), chosen: cp(-1), accepted: cp(0) },
     { different: true, best: cp(50), chosen: cp(0), accepted: cp(0) },
     { accepted: cp(-1) }, { accepted: cp(-100) }, { best: cp(200), accepted: cp(100) }, { fail: true }, { depth: 8 },
-  ]) assert.equal((await verifySoundSacrifice(pawn, base(pawn), base(pawn), scripted(pawn, config).engine, { nodes: 600_000 })).brilliant, false, 'A losing, substantially inferior, unverified or shallow offer cannot signal');
+  ]) assert.equal((await verifySoundSacrifice(quiet, base(quiet), base(quiet), scripted(quiet, config).engine, { nodes: 600_000 })).brilliant, false, 'A losing, substantially inferior, unverified or shallow offer cannot signal');
 
-  assert.equal((await verifySoundSacrifice(pawn, base(pawn, cp(200)), base(pawn, cp(200)), scripted(pawn, { best: cp(200), accepted: cp(120) }).engine, { nodes: 600_000 })).brilliant, true, 'Exactly80cp acceptance drift remains inside the explicit verification tolerance');
+  assert.equal((await verifySoundSacrifice(quiet, base(quiet, cp(200)), base(quiet, cp(200)), scripted(quiet, { best: cp(200), accepted: cp(120) }).engine, { nodes: 600_000 })).brilliant, true, 'Exactly80cp acceptance drift remains inside the explicit verification tolerance');
 
   const greekFen = 'r4rk1/1b2bppp/ppq1p3/2ppB2n/5P2/1P1BP3/P1PPQ1PP/R4RK1 w - - 0 15';
   const greek = inspectSoundSacrifice(greekFen, 'd3h7')!;
@@ -109,14 +121,14 @@ async function run() {
   assert.equal((await verifySoundSacrifice(drawn, base(drawn, cp(0)), base(drawn, cp(0)), scripted(drawn, { best: cp(0) }).engine, { nodes: 600_000 })).brilliant, true, 'A terminal draw is handled as exact equality rather than asking an engine to move in a finished game');
   assert.equal((await verifySoundSacrifice(drawn, base(drawn, cp(200)), base(drawn, cp(200)), scripted(drawn, { best: cp(200) }).engine, { nodes: 600_000 })).brilliant, false, 'Do not exchange a verified winning advantage for a drawn acceptance');
   const canceled = new AbortController(); canceled.abort();
-  await assert.rejects(verifySoundSacrifice(pawn, base(pawn), base(pawn), near.engine, { nodes: 600_000, signal: canceled.signal }), { name: 'AbortError' });
+  await assert.rejects(verifySoundSacrifice(quiet, base(quiet), base(quiet), near.engine, { nodes: 600_000, signal: canceled.signal }), { name: 'AbortError' });
 
   const engine = new NodeEngine();
   try {
-    for (const c of [pawn, exchange]) {
+    for (const c of [exchange]) {
       const before = await engine.analyze(c.fenBefore, { nodes: 600_000 });
       const chosen = before.bestMove === c.uci ? before : await engine.analyze(c.fenBefore, { nodes: 600_000, searchMoves: [c.uci] });
-      assert.equal((await verifySoundSacrifice(c, before, chosen, engine, { nodes: 600_000 })).brilliant, true, 'Actual Stockfish confirms a pawn and an exchange offer with adequate compensation');
+      assert.equal((await verifySoundSacrifice(c, before, chosen, engine, { nodes: 600_000 })).brilliant, true, 'Actual Stockfish confirms an exchange offer with adequate compensation');
       assert.equal((await verifyBrilliantMove(c, before, chosen, engine, { nodes: 600_000 })).brilliant, false, 'Tal positives do not silently redefine the website brilliant badge');
     }
     const unsound = inspectSoundSacrifice('rnbq1rk1/ppp1bppp/3ppn2/8/3P4/3BPN2/PPP2PPP/RNBQ1RK1 w - - 0 7', 'd3h7')!;
@@ -124,6 +136,6 @@ async function run() {
     const chosen = await engine.analyze(unsound.fenBefore, { nodes: 600_000, searchMoves: [unsound.uci] });
     assert.equal((await verifySoundSacrifice(unsound, before, chosen, engine, { nodes: 600_000 })).brilliant, false, 'An actual refuted piece offer remains rejected');
   } finally { engine.dispose(); }
-  console.log('Sound sacrifices: pawn/exchange scope, fair trades/forced exclusions, compensated near-best alternatives, strict nonnegative floor, verified acceptances, winning-vs-drawn handling, cancellation, website independence and actual WASM passed.');
+  console.log('Sound sacrifices: pawn-only offers excluded, piece/exchange scope, fair trades/forced exclusions, compensated near-best alternatives, strict nonnegative floor, verified acceptances, winning-vs-drawn handling, cancellation, website independence and actual WASM passed.');
 }
 run().catch(error => { console.error(error); process.exitCode = 1; });

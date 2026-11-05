@@ -51,16 +51,16 @@ function legalUci(game: Chess): string[] {
  * therefore do not qualify. More than four acceptance branches are left unlabelled.
  */
 export function inspectSacrifice(fenBefore: string, uci: string): SacrificeCandidate | null {
-  return inspectMaterialOffer(fenBefore, uci, MIN_INVESTMENT_CP, false);
+  return inspectMaterialOffer(fenBefore, uci, MIN_INVESTMENT_CP);
 }
 
-/** Tal includes pawn/exchange offers and strong moves leaving another piece
- * en prise. Preserve the direct-offer path; equal trades still invest zero. */
+/** Tal includes piece/exchange offers and strong moves leaving another piece
+ * en prise. Pawn-only offers are excluded, including unmoved pawns. */
 export function inspectSoundSacrifice(fenBefore: string, uci: string): SacrificeCandidate | null {
-  return inspectMaterialOffer(fenBefore, uci, 100, true) ?? inspectMaterialOffer(fenBefore, uci, 100, true, true);
+  return inspectMaterialOffer(fenBefore, uci, 100) ?? inspectMaterialOffer(fenBefore, uci, 100, true);
 }
 
-function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, allowPawns: boolean, otherPieces = false): SacrificeCandidate | null {
+function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, otherPieces = false): SacrificeCandidate | null {
   try {
     if (!UCI.test(uci)) return null;
     const game = new Chess(fenBefore);
@@ -69,9 +69,11 @@ function inspectMaterialOffer(fenBefore: string, uci: string, minimum: number, a
     const learner = game.turn();
     const rootMaterial = material(game, learner);
     const move = play(game, uci);
-    if ((!allowPawns && move.piece === 'p') || (!otherPieces && move.piece === 'k') || move.promotion || game.isGameOver()) return null;
+    if ((!otherPieces && (move.piece === 'p' || move.piece === 'k')) || move.promotion || game.isGameOver()) return null;
     const fenAfterMove = game.fen();
-    const captures = game.moves({ verbose: true }).filter(reply => otherPieces ? Boolean(reply.captured) : reply.to === move.to && reply.captured === move.piece);
+    const captures = game.moves({ verbose: true }).filter(reply => otherPieces
+      ? Boolean(reply.captured && reply.captured !== 'p')
+      : reply.to === move.to && reply.captured === move.piece);
     if (!captures.length || (!otherPieces && captures.length > 4)) return null;
     const acceptances = captures.map(capture => {
       const after = new Chess(fenAfterMove);

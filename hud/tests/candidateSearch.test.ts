@@ -41,18 +41,18 @@ function scripted(config: Config = {}) {
 async function main() {
   const fast = scripted({ rootBest: candidates[6].uci, valid: candidates[6].uci });
   assert.deepEqual(await detectSacrifice(fen, fast.engine, new AbortController().signal, { mode: 'fast' }), { brilliant: true });
-  assert.equal(fast.calls.length, 1, 'Fast best-move signal comes from one complete unrestricted depth22 search');
-  assert.equal(fast.calls[0].root, fen); assert.equal(fast.calls[0].options.depth, 22); assert.equal(fast.calls[0].options.searchMoves, undefined);
+  assert.equal(fast.calls.length, 1, 'Fast best-move signal comes from one complete unrestricted depth15 search');
+  assert.equal(fast.calls[0].root, fen); assert.equal(fast.calls[0].options.depth, 15); assert.equal(fast.calls[0].options.searchMoves, undefined);
   const fastNear = scripted({ valid: candidates[6].uci });
   assert.deepEqual(await detectSacrifice(fen, fastNear.engine, new AbortController().signal, { mode: 'fast' }), { brilliant: true });
   assert(fastNear.calls.every(c => c.root === fen), 'Fast forced candidate searches remain full opponent searches from the original root');
-  assert(fastNear.calls.some(c => c.options.depth === 22 && c.options.searchMoves?.[0] === candidates[6].uci));
+  assert(fastNear.calls.some(c => c.options.depth === 15 && c.options.searchMoves?.[0] === candidates[6].uci));
   const losingFast = scripted();
   assert.deepEqual(await detectSacrifice(fen, losingFast.engine, new AbortController().signal, { mode: 'fast', maxSearches: 256 }), { brilliant: false });
 
   const priority = scripted({ rootBest: candidates[6].uci, valid: candidates[6].uci });
   assert.deepEqual(await detectSacrifice(fen, priority.engine, new AbortController().signal), { brilliant: true });
-  assert.equal(priority.calls[0].options.depth, 22);
+  assert.equal(priority.calls[0].options.depth, 15);
   assert(!priority.calls.some(c => c.options.multiPv), 'A fully verified root-best offer needs no ranking search');
   assert(priority.calls.some(c => c.root === candidates[6].fenAfterMove && !c.options.searchMoves));
 
@@ -73,7 +73,7 @@ async function main() {
 
   const negative = scripted();
   assert.deepEqual(await detectSacrifice(fen, negative.engine, new AbortController().signal, { maxSearches: 256 }), { brilliant: false });
-  const rejected = negative.calls.filter(c => c.root === fen && c.options.depth === 22 && c.options.searchMoves?.length === 1).map(c => c.options.searchMoves![0]);
+  const rejected = negative.calls.filter(c => c.root === fen && c.options.depth === 15 && c.options.searchMoves?.length === 1).map(c => c.options.searchMoves![0]);
   assert.deepEqual(new Set(rejected), new Set(candidates.map(c => c.uci)), 'A completed negative must cover every generated offer');
   const capped = scripted({ valid: candidates[6].uci });
   await assert.rejects(detectSacrifice(fen, capped.engine, new AbortController().signal, { maxSearches: 4 }), IncompleteAnalysisError, 'Budget exhaustion with unchecked offers cannot become a completed negative');

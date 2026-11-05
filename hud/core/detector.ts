@@ -7,8 +7,9 @@ export class IncompleteAnalysisError extends Error {
 }
 
 export type AnalysisMode = 'fast' | 'verified';
+const SACRIFICE_DEPTH = 15;
 export interface DetectionOptions {
-  /** Fast uses the full depth22 root score; verified separately checks replies. */
+  /** Fast uses the full depth15 root score; verified separately checks replies. */
   mode?: AnalysisMode;
   /** Per-search budget. Production never lowers nonchalant's 600k-node floor. */
   nodes?: number;
@@ -74,9 +75,10 @@ export async function detectSacrifice(
   const cache = new Map<string, BrowserEngineAnalysis>();
   const analyze = async (root: string, request: BrowserEngineSearchOptions = {}, depth = 12): Promise<BrowserEngineAnalysis> => {
     check();
-    const query = { ...request, nodes: depth >= 20
-      ? Math.min(9_600_000, Math.max(nodes * (depth >= 22 ? 16 : 8), (request.nodes ?? nodes) * 8))
-      : Math.max(nodes, request.nodes ?? nodes), ...(depth >= 20 ? { depth } : {}) };
+    const qualitySearch = depth === SACRIFICE_DEPTH;
+    const query = { ...request, nodes: qualitySearch
+      ? Math.min(9_600_000, Math.max(nodes * 16, (request.nodes ?? nodes) * 8))
+      : Math.max(nodes, request.nodes ?? nodes), ...(qualitySearch ? { depth } : {}) };
     const key = JSON.stringify([root, query.nodes, query.depth ?? null, query.multiPv ?? 1, query.searchMoves ?? null]);
     const saved = cache.get(key);
     if (saved) return saved;
@@ -100,7 +102,7 @@ export async function detectSacrifice(
     const candidates = legalMoves(board.fen()).map(move => inspectSoundSacrifice(board.fen(), move)).filter((c): c is SacrificeCandidate => c !== null);
     check();
     if (!candidates.length) return { brilliant: false };
-    const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, 22);
+    const deepAnalyze = (root: string, request: BrowserEngineSearchOptions = {}) => analyze(root, request, SACRIFICE_DEPTH);
     const before = await deepAnalyze(board.fen());
     // Under sound(), no offer can qualify against a root losing-mate score.
     if (before.score!.kind === 'mate' && before.score!.value < 0) return { brilliant: false };
@@ -109,11 +111,11 @@ export async function detectSacrifice(
       check();
       checked.add(candidate.uci);
       // One quality pass: the offer, every acceptance and unrestricted defense
-      // must actually reach depth22; the candidate-ranking search is not proof.
+      // must actually reach depth15; the candidate-ranking search is not proof.
       const chosen = before.bestMove === candidate.uci ? before : await deepAnalyze(board.fen(), { searchMoves: [candidate.uci] });
       if (!sound(before.score, chosen.score)) return false;
       // The root search includes every legal opposing reply. Fast mode uses
-      // that single horizon; verified mode also searches each child at depth22.
+      // that single horizon; verified mode also searches each child at depth15.
       if (options.mode === 'fast') return true;
       const verified = await verifySoundSacrifice(candidate, before, chosen, { analyze: deepAnalyze }, { nodes, signal });
       check();
@@ -136,7 +138,7 @@ export async function detectSacrifice(
         lines.some(line => line.depth < 12 || !remaining.some(candidate => candidate.uci === line.bestMove))) {
         throw new IncompleteAnalysisError('Не удалось сравнить кандидатов.', false);
       }
-      // Ranking orders work; its scores cannot veto independent depth22 checks.
+      // Ranking orders work; its scores cannot veto independent depth15 checks.
       for (const line of lines) {
         const candidate = remaining.find(candidate => candidate.uci === line.bestMove)!;
         if (await verify(candidate)) return { brilliant: true };
