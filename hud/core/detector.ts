@@ -11,8 +11,6 @@ const SACRIFICE_DEPTH = 15;
 export interface DetectionOptions {
   /** Fast uses the full depth15 root score; verified separately checks replies. */
   mode?: AnalysisMode;
-  /** Per-search budget. Production never lowers nonchalant's 600k-node floor. */
-  nodes?: number;
   /** Absolute deadline across all searches; expiration kills the worker. */
   timeoutMs?: number;
   maxSearches?: number;
@@ -58,10 +56,10 @@ export async function detectSacrifice(
 ): Promise<{ brilliant: boolean }> {
   if (signal.aborted) throw abortError();
   if (options.mode !== undefined && !['fast', 'verified'].includes(options.mode)) throw new IncompleteAnalysisError('Неизвестный режим проверки.', false);
-  const nodes = options.nodes ?? 600_000;
+  const nodes = 600_000;
   const timeoutMs = options.timeoutMs ?? 90_000;
   const maxSearches = options.maxSearches ?? 36;
-  if (![nodes, timeoutMs, maxSearches].every(n => Number.isSafeInteger(n) && n > 0) || nodes < 600_000 || nodes > 9_600_000) throw new IncompleteAnalysisError('Некорректный бюджет проверки.', false);
+  if (![timeoutMs, maxSearches].every(n => Number.isSafeInteger(n) && n > 0)) throw new IncompleteAnalysisError('Некорректный бюджет проверки.', false);
   let timedOut = false;
   let searches = 0;
   let failure: unknown;
@@ -75,11 +73,13 @@ export async function detectSacrifice(
   const cache = new Map<string, BrowserEngineAnalysis>();
   const analyze = async (root: string, request: BrowserEngineSearchOptions = {}, depth = 12): Promise<BrowserEngineAnalysis> => {
     check();
-    const qualitySearch = depth === SACRIFICE_DEPTH;
-    const query = { ...request, nodes: qualitySearch
-      ? Math.min(9_600_000, Math.max(nodes * 16, (request.nodes ?? nodes) * 8))
-      : Math.max(nodes, request.nodes ?? nodes), ...(qualitySearch ? { depth } : {}) };
-    const key = JSON.stringify([root, query.nodes, query.depth ?? null, query.multiPv ?? 1, query.searchMoves ?? null]);
+    // A node cap can finish early at insufficient depth on a slow machine.
+    // Give every search (including MultiPV ranking) time to reach its target.
+    const query: BrowserEngineSearchOptions = {
+      searchMoves: request.searchMoves, multiPv: request.multiPv,
+      depth, moveTimeMs: 15_000,
+    };
+    const key = JSON.stringify([root, query.depth, query.multiPv ?? 1, query.searchMoves ?? null]);
     const saved = cache.get(key);
     if (saved) return saved;
     if (++searches > maxSearches) { failure = new IncompleteAnalysisError('Лимит поисков проверки исчерпан.', false); throw failure; }
@@ -132,7 +132,7 @@ export async function detectSacrifice(
       const remaining = candidates.filter(candidate => !checked.has(candidate.uci));
       if (!remaining.length) return { brilliant: false };
       const count = Math.min(3, remaining.length);
-      const ranked = await analyze(board.fen(), { searchMoves: remaining.map(c => c.uci), multiPv: count, nodes: nodes * 2 });
+      const ranked = await analyze(board.fen(), { searchMoves: remaining.map(c => c.uci), multiPv: count });
       const lines = ranked.lines ?? [{ bestMove: ranked.bestMove!, score: ranked.score!, depth: ranked.depth, pv: ranked.pv }];
       if (lines.length !== count || new Set(lines.map(line => line.bestMove)).size !== count ||
         lines.some(line => line.depth < 12 || !remaining.some(candidate => candidate.uci === line.bestMove))) {

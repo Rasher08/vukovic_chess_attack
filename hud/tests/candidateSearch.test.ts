@@ -59,6 +59,8 @@ async function main() {
   const later = scripted({ valid: candidates[6].uci });
   assert.deepEqual(await detectSacrifice(fen, later.engine, new AbortController().signal), { brilliant: true }, 'A sound seventh offer must not be cut off after three');
   const batches = later.calls.filter(c => c.options.multiPv);
+  assert(later.calls.every(c => c.options.nodes === undefined && c.options.moveTimeMs === 15_000), 'Root, forced offers, acceptances, defenses and ranking all get15s without node caps');
+  assert(batches.every(c => c.options.depth === 12), 'Ranking must reach a complete depth12 batch rather than exhausting a shallow node budget');
   assert.equal(batches.length, 3);
   for (let i = 0; i < 3; i++) assert(!batches[i + 1]?.options.searchMoves?.includes(candidates[i].uci));
   const forced = later.calls.filter(c => c.root === fen && c.options.searchMoves?.length === 1 && !c.options.multiPv).map(c => c.options.searchMoves![0]);

@@ -60,7 +60,7 @@ async function run() {
       assert(engine.traces.some(t => t.fen === good && t.options.depth === depth && t.result.depth >= depth));
       assert(engine.traces.some(t => t.fen === candidate.fenAfterMove && t.options.depth === depth && t.result.depth >= depth));
     }
-    assert(engine.traces.every(t => t.result.depth >= 12 && (t.options.nodes ?? 0) >= 600_000));
+    assert(engine.traces.every(t => t.result.depth >= 12 && t.options.nodes === undefined && t.options.moveTimeMs === 15_000), 'Depth searches have15s available without an early node cap');
     console.log('PASS real Stockfish 19 Lite: correct sacrifice, acceptance and strongest defense.');
 
     assert.deepEqual(await detectSacrifice(rotated(good), engine, new AbortController().signal), { brilliant: true }, 'Black side-to-move uses correct score POV');

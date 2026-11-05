@@ -1,7 +1,7 @@
 {
   "name": "nonchalant-local-hud",
-  "version": "0.1.11",
-  "description": "Tal HUD Mentality — correct chess sacrifices with compensation",
+  "version": "0.1.12",
+  "description": "Tal HUD Mentality \u2014 correct chess sacrifices with compensation",
   "author": "Rasher08",
   "private": true,
   "main": "dist/main.cjs",
@@ -10,7 +10,7 @@
     "build": "node build.mjs",
     "start": "npm run build && electron .",
     "typecheck": "tsc --project tsconfig.json",
-    "test": "tsx tests/soundStore.test.ts && tsx tests/analysisSettings.test.ts && tsx tests/analysisSide.test.ts && tsx tests/soundPlayer.test.ts && tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/depthGate.test.ts && tsx tests/candidateSearch.test.ts && tsx tests/detector.test.ts",
+    "test": "tsx tests/soundStore.test.ts && tsx tests/analysisSettings.test.ts && tsx tests/analysisSide.test.ts && tsx tests/soundPlayer.test.ts && tsx tests/recognition.test.ts && tsx tests/controller.test.ts && tsx tests/moveHistory.test.ts && node tests/extension.test.cjs && tsx tests/timeBudget.test.ts && tsx tests/depthGate.test.ts && tsx tests/candidateSearch.test.ts && tsx tests/detector.test.ts",
     "test:sound": "npm run build && electron . --hud-sound-smoke",
     "test:moves": "npm run build && electron tests/moves.electron.cjs",
     "smoke": "npm run build && electron . --hud-smoke",
